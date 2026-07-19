@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: my-interviewer-backend
+
+server:
+  port: 8080
+

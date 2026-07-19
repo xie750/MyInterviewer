@@ -1,0 +1,54 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Environment
+.env
+.env.*
+!.env.example
+!frontend/.env.example
+
+# Java / Maven
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# Node / Vite
+node_modules/
+dist/
+frontend/node_modules/
+frontend/dist/
+.vite/
+coverage/
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Logs
+*.log
+logs/
+
+# Local app runtime data
+uploads/
+storage/
+runtime/
+*.db
+*.sqlite
+*.sqlite3
+
+# Local Spring Boot overrides
+backend/src/main/resources/application-local.yml
+backend/src/main/resources/application-local.yaml
+backend/src/main/resources/application-secret.yml
+backend/src/main/resources/application-secret.yaml
+
+# Temporary files
+tmp/
+temp/
