@@ -111,6 +111,12 @@ onMounted(loadInterview)
           </el-tag>
         </div>
 
+        <div v-if="interview.resume.used" class="resume-context-strip">
+          <el-tag type="success">已使用简历</el-tag>
+          <p v-if="interview.resume.summary">{{ interview.resume.summary }}</p>
+          <p v-else>本场面试创建时使用过简历；面试结束后临时解析上下文已清理。</p>
+        </div>
+
         <div class="message-list">
           <article
             v-for="message in interview.messages"

@@ -66,6 +66,23 @@ export interface InterviewerStyle {
 export interface CreateInterviewRequest {
   positionId: number
   styleId: number
+  resume?: ResumeContextRequest
+}
+
+export interface ResumeContextRequest {
+  summary: string | null
+  skills: string[]
+  projects: string[]
+  warnings: string[]
+}
+
+export interface ResumeParseResponse extends ResumeContextRequest {
+  fileName: string
+  extractedTextLength: number
+}
+
+export interface ResumeContext extends ResumeContextRequest {
+  used: boolean
 }
 
 export interface AnswerInterviewRequest {
@@ -101,6 +118,7 @@ export interface InterviewDetail {
   questionCount: number
   position: Position
   style: InterviewerStyle
+  resume: ResumeContext
   messages: InterviewMessage[]
   report: InterviewReport | null
   startedAt: string
@@ -114,6 +132,7 @@ export interface InterviewSummary {
   questionCount: number
   positionName: string
   styleName: string
+  resumeUsed: boolean
   totalScore: number | null
   startedAt: string
   endedAt: string | null
@@ -128,6 +147,7 @@ export interface AdminInterview {
   styleName: string
   status: InterviewStatus
   questionCount: number
+  resumeUsed: boolean
   totalScore: number | null
   startedAt: string
   endedAt: string | null

@@ -2,6 +2,7 @@ package com.kedaxunfei.myinterviewer.controller;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -82,6 +83,54 @@ class InterviewControllerTests {
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.summary", containsString("Java 后端工程师")));
+    }
+
+    @Test
+    void userCanCreateInterviewWithResumeContextAndTemporaryContextIsClearedOnFinish() throws Exception {
+        String token = loginAndExtractToken("user");
+
+        MvcResult createResult = mockMvc.perform(post("/api/interviews")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "positionId": 1,
+                                  "styleId": 1,
+                                  "resume": {
+                                    "summary": "候选人熟悉 Java、Spring Boot、MySQL，主导过智能面试平台项目。",
+                                    "skills": ["Java", "Spring Boot", "MySQL"],
+                                    "projects": ["智能面试平台项目，负责登录鉴权、权限隔离和面试报告生成"],
+                                    "warnings": ["建议补充量化指标"]
+                                  }
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.resume.used").value(true))
+                .andExpect(jsonPath("$.data.resume.skills", hasSize(3)))
+                .andExpect(jsonPath("$.data.messages[0].content", containsString("简历中提到Java、Spring Boot、MySQL")))
+                .andReturn();
+
+        String sessionId = extractId(createResult);
+
+        mockMvc.perform(post("/api/interviews/" + sessionId + "/messages")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "content": "我负责权限模型、接口契约、数据库表设计和测试覆盖，并用指标验证稳定性。"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.messages[2].content", containsString("对照简历中的Java、Spring Boot、MySQL")));
+
+        mockMvc.perform(post("/api/interviews/" + sessionId + "/finish")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.data.resume.used").value(true))
+                .andExpect(jsonPath("$.data.resume.summary", nullValue()))
+                .andExpect(jsonPath("$.data.resume.skills", hasSize(0)))
+                .andExpect(jsonPath("$.data.report.summary", containsString("简历摘要")));
     }
 
     @Test

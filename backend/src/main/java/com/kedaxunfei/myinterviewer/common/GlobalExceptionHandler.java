@@ -4,6 +4,8 @@ import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -30,5 +32,14 @@ public class GlobalExceptionHandler {
                 .collect(Collectors.joining("; "));
         return ResponseEntity.badRequest().body(ApiResponse.failure(ErrorCodes.BAD_REQUEST, message));
     }
-}
 
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMaxUploadSizeException(MaxUploadSizeExceededException ex) {
+        return ResponseEntity.badRequest().body(ApiResponse.failure(ErrorCodes.BAD_REQUEST, "简历文件不能超过 10MB"));
+    }
+
+    @ExceptionHandler(MultipartException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMultipartException(MultipartException ex) {
+        return ResponseEntity.badRequest().body(ApiResponse.failure(ErrorCodes.BAD_REQUEST, "上传文件解析失败"));
+    }
+}

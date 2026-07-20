@@ -11,6 +11,7 @@ public record InterviewSummaryResponse(
         Integer questionCount,
         String positionName,
         String styleName,
+        Boolean resumeUsed,
         Integer totalScore,
         LocalDateTime startedAt,
         LocalDateTime endedAt,
@@ -21,6 +22,7 @@ public record InterviewSummaryResponse(
             InterviewSession session,
             String positionName,
             String styleName,
+            Boolean resumeUsed,
             Integer totalScore
     ) {
         return new InterviewSummaryResponse(
@@ -29,6 +31,7 @@ public record InterviewSummaryResponse(
                 session.getQuestionCount(),
                 positionName,
                 styleName,
+                Boolean.TRUE.equals(resumeUsed),
                 totalScore,
                 session.getStartedAt(),
                 session.getEndedAt(),

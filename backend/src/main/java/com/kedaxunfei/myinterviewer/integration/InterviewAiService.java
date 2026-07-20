@@ -10,13 +10,23 @@ public interface InterviewAiService {
 
     String generateOpeningQuestion(JobPosition position, InterviewerStyle style);
 
+    String generateOpeningQuestion(JobPosition position, InterviewerStyle style, ResumeContext resume);
+
     String generateFollowUpQuestion(
             JobPosition position,
             InterviewerStyle style,
+            ResumeContext resume,
             List<InterviewMessage> history,
             String answer,
             int nextQuestionNo
     );
 
     InterviewAiReport generateReport(JobPosition position, InterviewerStyle style, List<InterviewMessage> history);
+
+    InterviewAiReport generateReport(
+            JobPosition position,
+            InterviewerStyle style,
+            ResumeContext resume,
+            List<InterviewMessage> history
+    );
 }

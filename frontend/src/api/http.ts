@@ -2,6 +2,12 @@ import axios from 'axios'
 
 const TOKEN_KEY = 'auth_token'
 
+declare module 'axios' {
+  export interface AxiosRequestConfig {
+    skipUnauthorizedRedirect?: boolean
+  }
+}
+
 export const http = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL ?? '/api',
   timeout: 15000,
@@ -18,7 +24,11 @@ http.interceptors.request.use((config) => {
 http.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 && error.config?.url !== '/auth/login') {
+    if (
+      error.response?.status === 401
+      && error.config?.url !== '/auth/login'
+      && !error.config?.skipUnauthorizedRedirect
+    ) {
       localStorage.removeItem(TOKEN_KEY)
       if (window.location.pathname !== '/login') {
         const redirect = `${window.location.pathname}${window.location.search}`

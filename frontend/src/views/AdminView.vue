@@ -261,6 +261,13 @@ onMounted(loadAll)
             <el-table-column prop="displayName" label="用户" min-width="130" />
             <el-table-column prop="positionName" label="岗位" min-width="160" />
             <el-table-column prop="styleName" label="风格" min-width="130" />
+            <el-table-column label="简历" width="90">
+              <template #default="{ row }">
+                <el-tag :type="row.resumeUsed ? 'success' : 'info'">
+                  {{ row.resumeUsed ? '已用' : '未用' }}
+                </el-tag>
+              </template>
+            </el-table-column>
             <el-table-column label="状态" width="110">
               <template #default="{ row }">
                 <el-tag :type="row.status === 'COMPLETED' ? 'success' : 'warning'">

@@ -2,16 +2,16 @@
 
 本仓库用于开发“AI 模拟面试网站”，采用 Spring Boot 3 + Vue 3 前后端分离架构。
 
-当前已完成 `v0.1 MVP`：登录鉴权、双角色权限、岗位选择、面试官风格选择、文字 AI 面试、多轮追问、报告、个人历史记录和基础管理员后台。
+当前已完成 `v0.2`：登录鉴权、双角色权限、岗位选择、面试官风格选择、可选简历上传与临时解析、文字 AI 面试、多轮追问、报告、个人历史记录和基础管理员后台。
 
 ## MVP 流程
 
 ```text
-登录 -> 选择岗位 -> 选择面试官风格 -> 文字 AI 面试
+登录 -> 选择岗位 -> 选择面试官风格 -> 可选上传简历 -> 文字 AI 面试
 -> AI 追问 -> 结束面试 -> 生成报告 -> 查看历史记录
 ```
 
-当前 AI 能力通过后端 `InterviewAiService` 统一封装，默认使用本地规则型实现，无需外部大模型 API Key 即可跑通闭环。
+当前 AI 能力通过后端 `InterviewAiService` 统一封装，默认使用本地规则型实现，无需外部大模型 API Key 即可跑通闭环。简历上传支持 `txt`、`md`、`pdf`、`docx`，单文件不超过 10MB；原始文件不保存，面试结束后清理会话中的临时解析上下文。
 
 ## 文档入口
 
@@ -19,6 +19,7 @@
 - [docs/product/current-scope.md](docs/product/current-scope.md)：当前系统真实状态。
 - [docs/product/roadmap.md](docs/product/roadmap.md)：版本路线图。
 - [docs/releases/v0.1-mvp.md](docs/releases/v0.1-mvp.md)：MVP 版本说明。
+- [docs/releases/v0.2-resume.md](docs/releases/v0.2-resume.md)：简历上传与临时解析版本说明。
 - [docs/tasks/current-task.md](docs/tasks/current-task.md)：当前任务边界。
 
 ## 技术栈
@@ -73,4 +74,4 @@ cd frontend
 npm run build
 ```
 
-当前验证结果：后端 19 个测试通过，前端类型检查和生产构建通过。
+当前验证结果：后端 23 个测试通过，前端类型检查和生产构建通过。

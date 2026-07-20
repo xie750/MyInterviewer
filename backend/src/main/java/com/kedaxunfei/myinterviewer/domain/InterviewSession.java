@@ -14,6 +14,11 @@ public class InterviewSession {
     private Long userId;
     private Long positionId;
     private Long styleId;
+    private Boolean resumeUsed;
+    private String resumeSummary;
+    private String resumeSkills;
+    private String resumeProjects;
+    private String resumeWarnings;
     private InterviewStatus status;
     private Integer questionCount;
     private LocalDateTime startedAt;
@@ -51,6 +56,46 @@ public class InterviewSession {
 
     public void setStyleId(Long styleId) {
         this.styleId = styleId;
+    }
+
+    public Boolean getResumeUsed() {
+        return resumeUsed;
+    }
+
+    public void setResumeUsed(Boolean resumeUsed) {
+        this.resumeUsed = resumeUsed;
+    }
+
+    public String getResumeSummary() {
+        return resumeSummary;
+    }
+
+    public void setResumeSummary(String resumeSummary) {
+        this.resumeSummary = resumeSummary;
+    }
+
+    public String getResumeSkills() {
+        return resumeSkills;
+    }
+
+    public void setResumeSkills(String resumeSkills) {
+        this.resumeSkills = resumeSkills;
+    }
+
+    public String getResumeProjects() {
+        return resumeProjects;
+    }
+
+    public void setResumeProjects(String resumeProjects) {
+        this.resumeProjects = resumeProjects;
+    }
+
+    public String getResumeWarnings() {
+        return resumeWarnings;
+    }
+
+    public void setResumeWarnings(String resumeWarnings) {
+        this.resumeWarnings = resumeWarnings;
     }
 
     public InterviewStatus getStatus() {

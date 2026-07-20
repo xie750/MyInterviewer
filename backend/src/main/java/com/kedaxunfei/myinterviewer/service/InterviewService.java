@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.kedaxunfei.myinterviewer.common.BusinessException;
 import com.kedaxunfei.myinterviewer.common.ErrorCodes;
 import com.kedaxunfei.myinterviewer.domain.InterviewMessage;
@@ -26,8 +27,11 @@ import com.kedaxunfei.myinterviewer.dto.InterviewReportResponse;
 import com.kedaxunfei.myinterviewer.dto.InterviewSummaryResponse;
 import com.kedaxunfei.myinterviewer.dto.InterviewerStyleResponse;
 import com.kedaxunfei.myinterviewer.dto.PositionResponse;
+import com.kedaxunfei.myinterviewer.dto.ResumeContextRequest;
+import com.kedaxunfei.myinterviewer.dto.ResumeContextResponse;
 import com.kedaxunfei.myinterviewer.integration.InterviewAiReport;
 import com.kedaxunfei.myinterviewer.integration.InterviewAiService;
+import com.kedaxunfei.myinterviewer.integration.ResumeContext;
 import com.kedaxunfei.myinterviewer.repository.InterviewMessageMapper;
 import com.kedaxunfei.myinterviewer.repository.InterviewReportMapper;
 import com.kedaxunfei.myinterviewer.repository.InterviewSessionMapper;
@@ -67,12 +71,14 @@ public class InterviewService {
     public InterviewDetailResponse createInterview(AuthenticatedUser user, CreateInterviewRequest request) {
         JobPosition position = positionService.requireEnabledPosition(request.positionId());
         InterviewerStyle style = interviewerStyleService.requireEnabledStyle(request.styleId());
+        ResumeContext resume = toResumeContext(request.resume());
         LocalDateTime now = LocalDateTime.now();
 
         InterviewSession session = new InterviewSession();
         session.setUserId(user.id());
         session.setPositionId(position.getId());
         session.setStyleId(style.getId());
+        applyResumeContext(session, resume);
         session.setStatus(InterviewStatus.IN_PROGRESS);
         session.setQuestionCount(1);
         session.setStartedAt(now);
@@ -80,7 +86,7 @@ public class InterviewService {
         session.setUpdatedAt(now);
         interviewSessionMapper.insert(session);
 
-        saveMessage(session.getId(), MessageRole.ASSISTANT, interviewAiService.generateOpeningQuestion(position, style), 1);
+        saveMessage(session.getId(), MessageRole.ASSISTANT, interviewAiService.generateOpeningQuestion(position, style, resume), 1);
         return buildDetail(session.getId());
     }
 
@@ -108,13 +114,14 @@ public class InterviewService {
 
         JobPosition position = positionService.requirePosition(session.getPositionId());
         InterviewerStyle style = interviewerStyleService.requireStyle(session.getStyleId());
+        ResumeContext resume = resumeContextFromSession(session);
         int currentRound = session.getQuestionCount();
         String answer = request.content().trim();
         saveMessage(session.getId(), MessageRole.USER, answer, currentRound);
 
         List<InterviewMessage> history = listMessages(session.getId());
         int nextQuestionNo = currentRound + 1;
-        String followUp = interviewAiService.generateFollowUpQuestion(position, style, history, answer, nextQuestionNo);
+        String followUp = interviewAiService.generateFollowUpQuestion(position, style, resume, history, answer, nextQuestionNo);
         saveMessage(session.getId(), MessageRole.ASSISTANT, followUp, nextQuestionNo);
 
         session.setQuestionCount(nextQuestionNo);
@@ -131,8 +138,9 @@ public class InterviewService {
             LocalDateTime now = LocalDateTime.now();
             session.setStatus(InterviewStatus.COMPLETED);
             session.setEndedAt(now);
+            clearTemporaryResumeContext(session);
             session.setUpdatedAt(now);
-            interviewSessionMapper.updateById(session);
+            updateFinishedSessionAndClearResume(session);
         }
         return buildDetail(session.getId());
     }
@@ -163,7 +171,8 @@ public class InterviewService {
         }
         JobPosition position = positionService.requirePosition(session.getPositionId());
         InterviewerStyle style = interviewerStyleService.requireStyle(session.getStyleId());
-        InterviewAiReport aiReport = interviewAiService.generateReport(position, style, listMessages(session.getId()));
+        ResumeContext resume = resumeContextFromSession(session);
+        InterviewAiReport aiReport = interviewAiService.generateReport(position, style, resume, listMessages(session.getId()));
         LocalDateTime now = LocalDateTime.now();
 
         InterviewReport report = new InterviewReport();
@@ -190,6 +199,7 @@ public class InterviewService {
                 session,
                 position.getName(),
                 style.getName(),
+                session.getResumeUsed(),
                 report == null ? null : report.getTotalScore()
         );
     }
@@ -220,6 +230,7 @@ public class InterviewService {
                 session,
                 PositionResponse.from(position),
                 InterviewerStyleResponse.from(style),
+                ResumeContextResponse.from(session),
                 messages,
                 InterviewReportResponse.from(findReport(session.getId()))
         );
@@ -240,6 +251,101 @@ public class InterviewService {
                 .eq(InterviewMessage::getSessionId, sessionId)
                 .orderByAsc(InterviewMessage::getRoundNo)
                 .orderByAsc(InterviewMessage::getId));
+    }
+
+    private void applyResumeContext(InterviewSession session, ResumeContext resume) {
+        if (resume == null || !resume.present()) {
+            session.setResumeUsed(false);
+            return;
+        }
+        session.setResumeUsed(true);
+        session.setResumeSummary(limit(resume.summary(), 1000));
+        session.setResumeSkills(joinLimited(resume.skills(), 1000));
+        session.setResumeProjects(joinLimited(resume.projects(), 1000));
+        session.setResumeWarnings(joinLimited(resume.warnings(), 1000));
+    }
+
+    private ResumeContext toResumeContext(ResumeContextRequest request) {
+        if (request == null) {
+            return ResumeContext.empty();
+        }
+        return new ResumeContext(
+                clean(request.summary()),
+                cleanList(request.skills(), 12),
+                cleanList(request.projects(), 5),
+                cleanList(request.warnings(), 4)
+        );
+    }
+
+    private ResumeContext resumeContextFromSession(InterviewSession session) {
+        if (!Boolean.TRUE.equals(session.getResumeUsed())) {
+            return ResumeContext.empty();
+        }
+        return new ResumeContext(
+                clean(session.getResumeSummary()),
+                splitLines(session.getResumeSkills()),
+                splitLines(session.getResumeProjects()),
+                splitLines(session.getResumeWarnings())
+        );
+    }
+
+    private void clearTemporaryResumeContext(InterviewSession session) {
+        session.setResumeSummary(null);
+        session.setResumeSkills(null);
+        session.setResumeProjects(null);
+        session.setResumeWarnings(null);
+    }
+
+    private void updateFinishedSessionAndClearResume(InterviewSession session) {
+        interviewSessionMapper.update(null, new LambdaUpdateWrapper<InterviewSession>()
+                .eq(InterviewSession::getId, session.getId())
+                .set(InterviewSession::getStatus, session.getStatus())
+                .set(InterviewSession::getEndedAt, session.getEndedAt())
+                .set(InterviewSession::getUpdatedAt, session.getUpdatedAt())
+                .set(InterviewSession::getResumeSummary, null)
+                .set(InterviewSession::getResumeSkills, null)
+                .set(InterviewSession::getResumeProjects, null)
+                .set(InterviewSession::getResumeWarnings, null));
+    }
+
+    private List<String> cleanList(List<String> values, int maxSize) {
+        if (values == null) {
+            return List.of();
+        }
+        return values.stream()
+                .map(this::clean)
+                .filter(value -> value != null && !value.isBlank())
+                .distinct()
+                .limit(maxSize)
+                .toList();
+    }
+
+    private List<String> splitLines(String value) {
+        if (value == null || value.isBlank()) {
+            return List.of();
+        }
+        return List.of(value.split("\\n")).stream()
+                .map(this::clean)
+                .filter(item -> item != null && !item.isBlank())
+                .toList();
+    }
+
+    private String joinLimited(List<String> values, int maxLength) {
+        return limit(String.join("\n", values), maxLength);
+    }
+
+    private String clean(String value) {
+        if (value == null) {
+            return null;
+        }
+        return value.replaceAll("\\s+", " ").trim();
+    }
+
+    private String limit(String value, int maxLength) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.length() <= maxLength ? value : value.substring(0, maxLength);
     }
 
     private InterviewSession requireOwnedSession(AuthenticatedUser user, Long id) {

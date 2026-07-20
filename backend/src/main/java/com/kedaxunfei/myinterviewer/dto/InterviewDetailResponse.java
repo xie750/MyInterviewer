@@ -12,6 +12,7 @@ public record InterviewDetailResponse(
         Integer questionCount,
         PositionResponse position,
         InterviewerStyleResponse style,
+        ResumeContextResponse resume,
         List<InterviewMessageResponse> messages,
         InterviewReportResponse report,
         LocalDateTime startedAt,
@@ -23,6 +24,7 @@ public record InterviewDetailResponse(
             InterviewSession session,
             PositionResponse position,
             InterviewerStyleResponse style,
+            ResumeContextResponse resume,
             List<InterviewMessageResponse> messages,
             InterviewReportResponse report
     ) {
@@ -32,6 +34,7 @@ public record InterviewDetailResponse(
                 session.getQuestionCount(),
                 position,
                 style,
+                resume,
                 messages,
                 report,
                 session.getStartedAt(),

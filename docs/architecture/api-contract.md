@@ -20,7 +20,7 @@
 
 业务异常使用相同结构返回，HTTP 状态码与 `code` 对齐。
 
-## v0.1 已实现接口
+## v0.2 已实现接口
 
 | 模块 | 路径 | 说明 |
 |---|---|---|
@@ -28,8 +28,9 @@
 | 当前用户 | `GET /api/me` | 获取当前登录用户 |
 | 岗位 | `GET /api/positions` | 普通用户可选启用岗位 |
 | 面试官风格 | `GET /api/interviewer-styles` | 普通用户可选启用风格 |
+| 简历解析 | `POST /api/resumes/parse` | 登录用户上传简历并返回临时结构化解析结果 |
 | 面试会话 | `GET /api/interviews` | 当前用户个人历史 |
-| 面试会话 | `POST /api/interviews` | 创建文字面试并生成首问 |
+| 面试会话 | `POST /api/interviews` | 创建文字面试并生成首问，可选携带简历解析结果 |
 | 面试会话 | `GET /api/interviews/{id}` | 当前用户面试详情 |
 | 面试消息 | `POST /api/interviews/{id}/messages` | 提交回答并生成追问 |
 | 面试结束 | `POST /api/interviews/{id}/finish` | 结束面试并生成报告 |
@@ -47,11 +48,36 @@
 ```json
 {
   "positionId": 1,
-  "styleId": 1
+  "styleId": 1,
+  "resume": {
+    "summary": "候选人熟悉 Java、Spring Boot、MySQL，主导过智能面试平台项目。",
+    "skills": ["Java", "Spring Boot", "MySQL"],
+    "projects": ["智能面试平台项目，负责登录鉴权和面试报告生成"],
+    "warnings": ["建议补充量化指标"]
+  }
 }
 ```
 
-响应中的 `data.messages[0]` 是 AI 首次提问。
+`resume` 可省略。响应中的 `data.messages[0]` 是 AI 首次提问；携带简历时首问会结合简历摘要。
+
+### 简历解析
+
+`POST /api/resumes/parse` 使用 `multipart/form-data`，字段名为 `file`。当前支持 `txt`、`md`、`pdf`、`docx`，单文件不超过 10MB。
+
+响应示例：
+
+```json
+{
+  "fileName": "resume.txt",
+  "summary": "技能关键词：Java、Spring Boot。代表经历：智能面试平台项目。",
+  "skills": ["Java", "Spring Boot"],
+  "projects": ["智能面试平台项目，负责登录鉴权和报告生成"],
+  "warnings": ["建议补充量化指标"],
+  "extractedTextLength": 240
+}
+```
+
+后端不保存原始简历文件。解析失败、格式不支持或文件过大返回 `400`。
 
 ### 提交回答
 
@@ -79,7 +105,6 @@
 
 ## 后续接口模块
 
-- `/api/resumes/parse`：简历临时解析；
 - `/api/voice/*`：语音识别和语音合成；
 - `/api/posture-events`：姿态异常结果上报；
 - `/api/admin/posture-events`：姿态记录后台；

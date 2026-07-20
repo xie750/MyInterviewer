@@ -109,6 +109,7 @@ h1 {
 .position-card,
 .admin-section,
 .style-panel,
+.resume-upload-panel,
 .interview-main,
 .report-panel {
   border: 1px solid #d8dee8;
@@ -165,6 +166,59 @@ h1 {
   max-width: 1180px;
   margin: 0 auto 16px;
   padding: 24px;
+}
+
+.resume-upload-panel {
+  max-width: 1180px;
+  margin: 0 auto 16px;
+  padding: 24px;
+}
+
+.resume-upload-layout {
+  display: grid;
+  grid-template-columns: 360px minmax(0, 1fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+.resume-preview {
+  min-height: 178px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 18px;
+}
+
+.resume-preview-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #111827;
+}
+
+.resume-preview p,
+.resume-warning {
+  margin: 12px 0 0;
+  color: #374151;
+  line-height: 1.7;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.resume-list {
+  margin: 12px 0 0;
+  padding-left: 18px;
+  color: #4b5563;
+  line-height: 1.7;
+}
+
+.resume-warning {
+  color: #b45309;
 }
 
 .style-grid {
@@ -239,6 +293,24 @@ h1 {
 .message-list {
   display: grid;
   gap: 14px;
+}
+
+.resume-context-strip {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+  padding: 14px;
+}
+
+.resume-context-strip p {
+  margin: 0;
+  color: #374151;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
 }
 
 .message-bubble {
@@ -328,6 +400,10 @@ h1 {
   }
 
   .interview-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .resume-upload-layout {
     grid-template-columns: 1fr;
   }
 
