@@ -36,7 +36,6 @@ Spring Boot 3 后端
 
 以下内容待确认：
 
-- 后端 ORM 采用 MyBatis-Plus 还是 JPA；
 - 大模型供应商；
 - 语音识别和语音合成供应商；
 - 虚拟人技术方案；
@@ -47,5 +46,8 @@ Spring Boot 3 后端
 
 - 后端使用 Maven；
 - 后端基础包名为 `com.kedaxunfei.myinterviewer`；
+- 后端 ORM 采用 MyBatis-Plus；
+- 后端数据库迁移采用 Flyway；
+- 后端 AI 能力通过 `InterviewAiService` 统一封装，v0.1 默认使用本地规则型实现；
 - 前端使用 Vue 3 + TypeScript + Vite；
 - 前端已引入 Pinia、Vue Router、Axios 和 Element Plus。

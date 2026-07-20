@@ -1,0 +1,7 @@
+package com.kedaxunfei.myinterviewer.repository;
+
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.kedaxunfei.myinterviewer.domain.InterviewReport;
+
+public interface InterviewReportMapper extends BaseMapper<InterviewReport> {
+}

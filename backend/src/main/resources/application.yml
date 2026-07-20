@@ -1,7 +1,21 @@
 spring:
   application:
     name: my-interviewer-backend
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:my_interviewer}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
 
 server:
   port: 8080
 
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+
+app:
+  jwt:
+    issuer: my-interviewer
+    secret: ${JWT_SECRET:dev-secret-for-my-interviewer-change-in-prod-32}
+    expiration-minutes: ${JWT_EXPIRATION_MINUTES:120}
