@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="360" viewBox="0 0 320 360" role="img" aria-label="Stern interviewer">
+  <rect width="320" height="360" rx="28" fill="#fff1f2"/>
+  <path d="M72 312c10-72 53-113 88-113s78 41 88 113z" fill="#be123c"/>
+  <circle cx="160" cy="118" r="58" fill="#ffe4e6"/>
+  <path d="M104 102c14-45 44-64 84-52 29 9 45 31 46 61-41-24-82-25-130-9z" fill="#1f2937"/>
+  <path d="M129 109l24 8M191 109l-24 8" stroke="#111827" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="141" cy="126" r="6" fill="#111827"/>
+  <circle cx="179" cy="126" r="6" fill="#111827"/>
+  <path d="M141 156c13-6 25-6 38 0" fill="none" stroke="#111827" stroke-width="7" stroke-linecap="round"/>
+  <rect x="111" y="213" width="98" height="36" rx="8" fill="#ffe4e6"/>
+  <path d="M133 231h54" stroke="#be123c" stroke-width="8" stroke-linecap="round"/>
+</svg>

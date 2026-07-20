@@ -29,7 +29,7 @@ Spring Boot 3 后端
 - `api/`：接口请求封装；
 - `stores/`：Pinia 状态；
 - `router/`：路由和权限守卫；
-- `services/`：语音、姿态检测、虚拟人等前端能力封装；当前 `voice.ts` 使用浏览器 Web Speech API 做本地语音识别和播报降级；
+- `services/`：语音、姿态检测、虚拟人等前端能力封装；当前 `voice.ts` 使用浏览器 Web Speech API 做本地语音识别和播报降级，`posture.ts` 使用摄像头本地采样和可选 `FaceDetector` 生成结构化事件，`virtualHuman.ts` 将后端虚拟人 key 映射到前端内置静态资源并提供占位降级；
 - `types/`：接口和业务类型定义。
 
 ## 当前决策状态
@@ -52,3 +52,5 @@ Spring Boot 3 后端
 - 前端使用 Vue 3 + TypeScript + Vite；
 - 前端已引入 Pinia、Vue Router、Axios 和 Element Plus。
 - v0.3 语音输入与问题播报优先使用浏览器本地 Web Speech API，不新增后端音频上传、转写或合成接口。
+- v0.4 摄像头姿态检测优先在浏览器本地完成，后端只保存结构化姿态事件，不接收原始视频帧。
+- v0.5 虚拟人基础展示使用面试官风格内置配置和前端静态资源映射，不新增素材上传或第三方数字人服务。

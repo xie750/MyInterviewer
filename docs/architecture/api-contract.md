@@ -20,7 +20,7 @@
 
 业务异常使用相同结构返回，HTTP 状态码与 `code` 对齐。
 
-## v0.3 已实现接口
+## v0.5 已实现接口
 
 | 模块 | 路径 | 说明 |
 |---|---|---|
@@ -35,6 +35,8 @@
 | 面试消息 | `POST /api/interviews/{id}/messages` | 提交回答并生成追问 |
 | 面试结束 | `POST /api/interviews/{id}/finish` | 结束面试并生成报告 |
 | 面试报告 | `GET /api/interviews/{id}/report` | 当前用户报告 |
+| 姿态事件 | `POST /api/posture-events` | 当前用户上报自己进行中面试的结构化姿态事件 |
+| 姿态事件 | `GET /api/interviews/{id}/posture-events` | 当前用户查询自己面试的姿态事件 |
 | 后台岗位 | `GET/POST/PUT/PATCH /api/admin/positions` | 岗位基础管理 |
 | 后台用户 | `GET /api/admin/users` | 用户列表 |
 | 后台用户 | `PATCH /api/admin/users/{id}/status` | 启停普通用户 |
@@ -59,6 +61,25 @@
 ```
 
 `resume` 可省略。响应中的 `data.messages[0]` 是 AI 首次提问；携带简历时首问会结合简历摘要。
+
+### 面试官风格与虚拟人
+
+`GET /api/interviewer-styles` 和面试详情中的 `style` 均包含 `virtualHuman`：
+
+```json
+{
+  "id": 1,
+  "name": "严厉压力面",
+  "scenario": "用于检验抗压能力和问题拆解深度",
+  "virtualHuman": {
+    "key": "stern-panel",
+    "name": "冷静追问官",
+    "description": "节奏紧凑，关注风险、证据和边界条件。"
+  }
+}
+```
+
+`key` 只作为前端内置资源映射标识。资源映射缺失或图片加载失败时，前端使用占位展示，不影响面试主流程。
 
 ### 简历解析
 
@@ -93,6 +114,21 @@
 
 `POST /api/interviews/{id}/finish` 无请求体。首次结束时生成 `interview_report`，重复调用返回既有结果。
 
+### 姿态事件上报
+
+```json
+{
+  "interviewId": 1,
+  "eventType": "LOW_LIGHT",
+  "severity": "WARNING",
+  "score": 42,
+  "detail": "摄像头画面亮度偏低，建议调整光线",
+  "occurredAt": "2026-07-20T15:00:00"
+}
+```
+
+后端只接收结构化事件，不接收原始视频流、截图或帧数据。普通用户只能上报和查询自己的面试；已结束面试不再接受新事件。
+
 ### 用户状态
 
 ```json
@@ -106,7 +142,6 @@
 ## 后续接口模块
 
 - `/api/voice/*`：后端语音识别和语音合成；v0.3 暂不实现，当前语音输入和播报由浏览器本地 Web Speech API 完成；
-- `/api/posture-events`：姿态异常结果上报；
 - `/api/admin/posture-events`：姿态记录后台；
 - `/api/admin/posture-config`：姿态阈值配置；
-- `/api/admin/virtual-humans`：虚拟人素材管理。
+- `/api/admin/virtual-humans`：虚拟人素材管理；v0.5 暂不实现，当前只使用内置静态资源。

@@ -15,6 +15,9 @@ public class InterviewerStyle {
     private String description;
     private String promptTemplate;
     private String scenario;
+    private String virtualHumanKey;
+    private String virtualHumanName;
+    private String virtualHumanDescription;
     private Boolean enabled;
     private Integer sortOrder;
     private LocalDateTime createdAt;
@@ -58,6 +61,30 @@ public class InterviewerStyle {
 
     public void setScenario(String scenario) {
         this.scenario = scenario;
+    }
+
+    public String getVirtualHumanKey() {
+        return virtualHumanKey;
+    }
+
+    public void setVirtualHumanKey(String virtualHumanKey) {
+        this.virtualHumanKey = virtualHumanKey;
+    }
+
+    public String getVirtualHumanName() {
+        return virtualHumanName;
+    }
+
+    public void setVirtualHumanName(String virtualHumanName) {
+        this.virtualHumanName = virtualHumanName;
+    }
+
+    public String getVirtualHumanDescription() {
+        return virtualHumanDescription;
+    }
+
+    public void setVirtualHumanDescription(String virtualHumanDescription) {
+        this.virtualHumanDescription = virtualHumanDescription;
     }
 
     public Boolean getEnabled() {

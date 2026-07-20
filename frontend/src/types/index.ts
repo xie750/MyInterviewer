@@ -2,6 +2,15 @@ export type UserRole = 'USER' | 'ADMIN'
 export type UserStatus = 'ENABLED' | 'DISABLED'
 export type InterviewStatus = 'IN_PROGRESS' | 'COMPLETED'
 export type MessageRole = 'ASSISTANT' | 'USER'
+export type PostureEventType =
+  | 'FACE_MISSING'
+  | 'FACE_OFF_CENTER'
+  | 'TOO_CLOSE'
+  | 'TOO_FAR'
+  | 'TOO_STILL'
+  | 'LOW_LIGHT'
+  | 'CAMERA_UNAVAILABLE'
+export type PostureSeverity = 'INFO' | 'WARNING' | 'CRITICAL'
 
 export interface ApiResponse<T> {
   code: number
@@ -51,12 +60,19 @@ export interface PositionRequest {
   sortOrder: number
 }
 
+export interface VirtualHumanProfile {
+  key: string
+  name: string
+  description: string
+}
+
 export interface InterviewerStyle {
   id: number
   name: string
   description: string | null
   promptTemplate: string
   scenario: string | null
+  virtualHuman: VirtualHumanProfile
   enabled: boolean
   sortOrder: number
   createdAt: string
@@ -87,6 +103,26 @@ export interface ResumeContext extends ResumeContextRequest {
 
 export interface AnswerInterviewRequest {
   content: string
+}
+
+export interface PostureEventRequest {
+  interviewId: number
+  eventType: PostureEventType
+  severity: PostureSeverity
+  score: number
+  detail: string
+  occurredAt: string
+}
+
+export interface PostureEvent {
+  id: number
+  sessionId: number
+  eventType: PostureEventType
+  severity: PostureSeverity
+  score: number
+  detail: string | null
+  occurredAt: string
+  createdAt: string
 }
 
 export interface InterviewMessage {
@@ -120,6 +156,7 @@ export interface InterviewDetail {
   style: InterviewerStyle
   resume: ResumeContext
   messages: InterviewMessage[]
+  postureEvents: PostureEvent[]
   report: InterviewReport | null
   startedAt: string
   endedAt: string | null

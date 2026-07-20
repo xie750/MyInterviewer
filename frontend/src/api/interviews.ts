@@ -7,6 +7,8 @@ import type {
   CreateInterviewRequest,
   InterviewDetail,
   InterviewSummary,
+  PostureEvent,
+  PostureEventRequest,
 } from '@/types'
 
 export async function fetchInterviewsApi(): Promise<InterviewSummary[]> {
@@ -41,5 +43,15 @@ export async function fetchAdminInterviewsApi(): Promise<AdminInterview[]> {
 
 export async function fetchAdminInterviewApi(id: number): Promise<InterviewDetail> {
   const response = await http.get<ApiResponse<InterviewDetail>>(`/admin/interviews/${id}`)
+  return response.data.data
+}
+
+export async function reportPostureEventApi(payload: PostureEventRequest): Promise<PostureEvent> {
+  const response = await http.post<ApiResponse<PostureEvent>>('/posture-events', payload)
+  return response.data.data
+}
+
+export async function fetchPostureEventsApi(id: number): Promise<PostureEvent[]> {
+  const response = await http.get<ApiResponse<PostureEvent[]>>(`/interviews/${id}/posture-events`)
   return response.data.data
 }

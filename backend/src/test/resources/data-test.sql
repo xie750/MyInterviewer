@@ -10,11 +10,11 @@ VALUES
 ('前端工程师', 'Vue 和 TypeScript 基础面试', 'Vue 3, TypeScript, Vite', '中级', '考察前端工程能力', TRUE, 20),
 ('停用岗位', '管理员可见，普通用户不可见', 'Legacy', '初级', '停用岗位不进入用户选择列表', FALSE, 30);
 
-INSERT INTO interviewer_style (name, description, prompt_template, scenario, enabled, sort_order)
+INSERT INTO interviewer_style (name, description, prompt_template, scenario, virtual_human_key, virtual_human_name, virtual_human_description, enabled, sort_order)
 VALUES
-('严厉压力面', '持续追问边界和风险', '直接追问模糊点和落地证据', '抗压评估', TRUE, 10),
-('温和引导面', '逐步引导候选人展开', '先肯定再引导补充上下文', '基础评估', TRUE, 20),
-('停用风格', '普通用户不可见', '停用风格不进入选择列表', '测试', FALSE, 30);
+('严厉压力面', '持续追问边界和风险', '直接追问模糊点和落地证据', '抗压评估', 'stern-panel', '冷静追问官', '节奏紧凑，关注风险、证据和边界条件。', TRUE, 10),
+('温和引导面', '逐步引导候选人展开', '先肯定再引导补充上下文', '基础评估', 'warm-guide', '引导型导师', '语气温和，帮助候选人逐步展开经历和思路。', TRUE, 20),
+('停用风格', '普通用户不可见', '停用风格不进入选择列表', '测试', 'default-interviewer', 'AI 面试官', '停用风格不进入普通用户选择列表。', FALSE, 30);
 
 INSERT INTO interview_session (id, user_id, position_id, style_id, status, question_count, started_at, ended_at)
 VALUES (100, 2, 1, 1, 'COMPLETED', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);

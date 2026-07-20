@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="360" viewBox="0 0 320 360" role="img" aria-label="Warm guide interviewer">
+  <rect width="320" height="360" rx="28" fill="#ecfdf5"/>
+  <path d="M78 312c8-65 47-105 82-105s74 40 82 105z" fill="#0f766e"/>
+  <circle cx="160" cy="120" r="58" fill="#ccfbf1"/>
+  <path d="M104 111c12-47 45-69 91-54 22 7 39 27 42 51-30-13-78-14-133 3z" fill="#475569"/>
+  <circle cx="140" cy="120" r="7" fill="#1f2937"/>
+  <circle cx="180" cy="120" r="7" fill="#1f2937"/>
+  <path d="M134 151c18 16 35 16 53 0" fill="none" stroke="#1f2937" stroke-width="7" stroke-linecap="round"/>
+  <path d="M118 89c-20 12-27 32-25 51" stroke="#0f766e" stroke-width="10" stroke-linecap="round"/>
+  <rect x="105" y="215" width="110" height="36" rx="18" fill="#ccfbf1"/>
+  <path d="M133 233h54" stroke="#0f766e" stroke-width="8" stroke-linecap="round"/>
+</svg>

@@ -1,4 +1,5 @@
 DROP TABLE IF EXISTS interview_report;
+DROP TABLE IF EXISTS posture_event;
 DROP TABLE IF EXISTS interview_message;
 DROP TABLE IF EXISTS interview_session;
 DROP TABLE IF EXISTS interviewer_style;
@@ -35,6 +36,9 @@ CREATE TABLE interviewer_style (
     description VARCHAR(500),
     prompt_template VARCHAR(1000) NOT NULL,
     scenario VARCHAR(200),
+    virtual_human_key VARCHAR(80),
+    virtual_human_name VARCHAR(80),
+    virtual_human_description VARCHAR(300),
     enabled BOOLEAN NOT NULL DEFAULT TRUE,
     sort_order INT NOT NULL DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -82,4 +86,18 @@ CREATE TABLE interview_report (
     recommendation VARCHAR(1000) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE posture_event (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    session_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    event_type VARCHAR(40) NOT NULL,
+    severity VARCHAR(20) NOT NULL,
+    score INT NOT NULL,
+    detail VARCHAR(500),
+    occurred_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_posture_event_session_time (session_id, occurred_at),
+    INDEX idx_posture_event_user_time (user_id, occurred_at)
 );

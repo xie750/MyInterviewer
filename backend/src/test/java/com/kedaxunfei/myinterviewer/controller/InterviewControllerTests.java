@@ -40,6 +40,8 @@ class InterviewControllerTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data", hasSize(2)))
                 .andExpect(jsonPath("$.data[0].name").value("严厉压力面"))
+                .andExpect(jsonPath("$.data[0].virtualHuman.key").value("stern-panel"))
+                .andExpect(jsonPath("$.data[0].virtualHuman.name").value("冷静追问官"))
                 .andExpect(jsonPath("$.data[1].name").value("温和引导面"));
     }
 
@@ -54,6 +56,7 @@ class InterviewControllerTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.id", notNullValue()))
                 .andExpect(jsonPath("$.data.status").value("IN_PROGRESS"))
+                .andExpect(jsonPath("$.data.style.virtualHuman.key").value("stern-panel"))
                 .andExpect(jsonPath("$.data.messages", hasSize(1)))
                 .andExpect(jsonPath("$.data.messages[0].content", containsString("Java 后端工程师")))
                 .andReturn();
@@ -148,6 +151,82 @@ class InterviewControllerTests {
         mockMvc.perform(get("/api/interviews").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data", hasSize(0)));
+    }
+
+    @Test
+    void userCanReportAndReadOwnPostureEvents() throws Exception {
+        String token = loginAndExtractToken("user");
+
+        MvcResult createResult = mockMvc.perform(post("/api/interviews")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"positionId\":1,\"styleId\":1}"))
+                .andExpect(status().isOk())
+                .andReturn();
+        String sessionId = extractId(createResult);
+
+        mockMvc.perform(post("/api/posture-events")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "interviewId": %s,
+                                  "eventType": "LOW_LIGHT",
+                                  "severity": "WARNING",
+                                  "score": 42,
+                                  "detail": "画面亮度偏低，请调整光线",
+                                  "occurredAt": "2026-07-20T14:40:00"
+                                }
+                                """.formatted(sessionId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.eventType").value("LOW_LIGHT"))
+                .andExpect(jsonPath("$.data.severity").value("WARNING"))
+                .andExpect(jsonPath("$.data.detail").value("画面亮度偏低，请调整光线"));
+
+        mockMvc.perform(get("/api/interviews/" + sessionId + "/posture-events")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data", hasSize(1)))
+                .andExpect(jsonPath("$.data[0].eventType").value("LOW_LIGHT"));
+
+        mockMvc.perform(get("/api/interviews/" + sessionId)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.postureEvents", hasSize(1)))
+                .andExpect(jsonPath("$.data.postureEvents[0].score").value(42));
+    }
+
+    @Test
+    void postureEventRequiresLoginAndOwnInterview() throws Exception {
+        mockMvc.perform(post("/api/posture-events")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "interviewId": 100,
+                                  "eventType": "FACE_MISSING",
+                                  "severity": "CRITICAL",
+                                  "score": 90
+                                }
+                                """))
+                .andExpect(status().isUnauthorized());
+
+        String token = loginAndExtractToken("user");
+        mockMvc.perform(post("/api/posture-events")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "interviewId": 100,
+                                  "eventType": "FACE_MISSING",
+                                  "severity": "CRITICAL",
+                                  "score": 90
+                                }
+                                """))
+                .andExpect(status().isNotFound());
+
+        mockMvc.perform(get("/api/interviews/100/posture-events")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isNotFound());
     }
 
     private String loginAndExtractToken(String username) throws Exception {

@@ -14,6 +14,7 @@ public record InterviewDetailResponse(
         InterviewerStyleResponse style,
         ResumeContextResponse resume,
         List<InterviewMessageResponse> messages,
+        List<PostureEventResponse> postureEvents,
         InterviewReportResponse report,
         LocalDateTime startedAt,
         LocalDateTime endedAt,
@@ -26,6 +27,7 @@ public record InterviewDetailResponse(
             InterviewerStyleResponse style,
             ResumeContextResponse resume,
             List<InterviewMessageResponse> messages,
+            List<PostureEventResponse> postureEvents,
             InterviewReportResponse report
     ) {
         return new InterviewDetailResponse(
@@ -36,6 +38,7 @@ public record InterviewDetailResponse(
                 style,
                 resume,
                 messages,
+                postureEvents,
                 report,
                 session.getStartedAt(),
                 session.getEndedAt(),

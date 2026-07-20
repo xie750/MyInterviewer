@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Delete, DocumentChecked, Refresh, Select, SwitchButton, UploadFilled } from '@element-plus/icons-vue'
+import { Delete, DocumentChecked, Refresh, Select, SwitchButton, UploadFilled, UserFilled } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import type { UploadFile } from 'element-plus'
 import { onMounted, ref } from 'vue'
@@ -9,6 +9,7 @@ import { createInterviewApi } from '@/api/interviews'
 import { fetchInterviewerStylesApi } from '@/api/interviewerStyles'
 import { fetchPositionsApi } from '@/api/positions'
 import { parseResumeApi } from '@/api/resumes'
+import { resolveVirtualHuman } from '@/services/virtualHuman'
 import type { InterviewerStyle, Position, ResumeParseResponse } from '@/types'
 
 const router = useRouter()
@@ -19,6 +20,7 @@ const positions = ref<Position[]>([])
 const styles = ref<InterviewerStyle[]>([])
 const selectedStyleId = ref<number | null>(null)
 const resumeContext = ref<ResumeParseResponse | null>(null)
+const avatarLoadFailed = ref<Record<number, boolean>>({})
 
 async function loadOptions() {
   loading.value = true
@@ -57,6 +59,17 @@ async function parseResume(uploadFile: UploadFile) {
 
 function clearResume() {
   resumeContext.value = null
+}
+
+function styleVirtualHuman(style: InterviewerStyle) {
+  return resolveVirtualHuman(style.virtualHuman)
+}
+
+function markAvatarLoadFailed(style: InterviewerStyle) {
+  avatarLoadFailed.value = {
+    ...avatarLoadFailed.value,
+    [style.id]: true,
+  }
 }
 
 async function startInterview(position: Position) {
@@ -114,8 +127,23 @@ onMounted(loadOptions)
       </div>
       <el-radio-group v-model="selectedStyleId" class="style-grid">
         <el-radio-button v-for="style in styles" :key="style.id" :label="style.id">
-          <span class="style-name">{{ style.name }}</span>
-          <span class="style-scenario">{{ style.scenario || '通用场景' }}</span>
+          <span class="style-card-content">
+            <span class="style-avatar" :style="{ '--avatar-accent': styleVirtualHuman(style).accent }">
+              <img
+                v-if="styleVirtualHuman(style).src && !avatarLoadFailed[style.id]"
+                :src="styleVirtualHuman(style).src || undefined"
+                :alt="styleVirtualHuman(style).name"
+                @error="markAvatarLoadFailed(style)"
+              >
+              <span v-else class="avatar-fallback">
+                <el-icon><UserFilled /></el-icon>
+              </span>
+            </span>
+            <span>
+              <span class="style-name">{{ style.name }}</span>
+              <span class="style-scenario">{{ styleVirtualHuman(style).name }} · {{ style.scenario || '通用场景' }}</span>
+            </span>
+          </span>
         </el-radio-button>
       </el-radio-group>
     </section>

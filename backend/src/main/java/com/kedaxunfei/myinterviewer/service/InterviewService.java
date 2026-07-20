@@ -44,6 +44,7 @@ public class InterviewService {
     private final InterviewSessionMapper interviewSessionMapper;
     private final InterviewMessageMapper interviewMessageMapper;
     private final InterviewReportMapper interviewReportMapper;
+    private final PostureEventService postureEventService;
     private final SysUserMapper sysUserMapper;
     private final PositionService positionService;
     private final InterviewerStyleService interviewerStyleService;
@@ -53,6 +54,7 @@ public class InterviewService {
             InterviewSessionMapper interviewSessionMapper,
             InterviewMessageMapper interviewMessageMapper,
             InterviewReportMapper interviewReportMapper,
+            PostureEventService postureEventService,
             SysUserMapper sysUserMapper,
             PositionService positionService,
             InterviewerStyleService interviewerStyleService,
@@ -61,6 +63,7 @@ public class InterviewService {
         this.interviewSessionMapper = interviewSessionMapper;
         this.interviewMessageMapper = interviewMessageMapper;
         this.interviewReportMapper = interviewReportMapper;
+        this.postureEventService = postureEventService;
         this.sysUserMapper = sysUserMapper;
         this.positionService = positionService;
         this.interviewerStyleService = interviewerStyleService;
@@ -232,6 +235,7 @@ public class InterviewService {
                 InterviewerStyleResponse.from(style),
                 ResumeContextResponse.from(session),
                 messages,
+                postureEventService.listEventsForSession(session.getId()),
                 InterviewReportResponse.from(findReport(session.getId()))
         );
     }

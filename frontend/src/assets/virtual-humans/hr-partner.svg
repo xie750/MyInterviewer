@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="360" viewBox="0 0 320 360" role="img" aria-label="HR partner interviewer">
+  <rect width="320" height="360" rx="28" fill="#fff7ed"/>
+  <path d="M78 312c10-67 50-106 82-106s72 39 82 106z" fill="#b45309"/>
+  <circle cx="160" cy="119" r="58" fill="#fed7aa"/>
+  <path d="M105 107c11-39 38-62 79-52 29 7 46 28 49 58-30-13-79-15-128-6z" fill="#78350f"/>
+  <circle cx="140" cy="120" r="7" fill="#111827"/>
+  <circle cx="180" cy="120" r="7" fill="#111827"/>
+  <path d="M136 151c16 13 32 13 48 0" fill="none" stroke="#111827" stroke-width="7" stroke-linecap="round"/>
+  <path d="M95 156c15 24 36 35 65 35s50-11 65-35" fill="none" stroke="#fb923c" stroke-width="9" stroke-linecap="round"/>
+  <rect x="105" y="216" width="110" height="36" rx="18" fill="#ffedd5"/>
+  <path d="M134 234h52" stroke="#b45309" stroke-width="8" stroke-linecap="round"/>
+</svg>
