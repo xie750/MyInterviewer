@@ -20,7 +20,7 @@
 
 业务异常使用相同结构返回，HTTP 状态码与 `code` 对齐。
 
-## v0.2 已实现接口
+## v0.3 已实现接口
 
 | 模块 | 路径 | 说明 |
 |---|---|---|
@@ -105,7 +105,7 @@
 
 ## 后续接口模块
 
-- `/api/voice/*`：语音识别和语音合成；
+- `/api/voice/*`：后端语音识别和语音合成；v0.3 暂不实现，当前语音输入和播报由浏览器本地 Web Speech API 完成；
 - `/api/posture-events`：姿态异常结果上报；
 - `/api/admin/posture-events`：姿态记录后台；
 - `/api/admin/posture-config`：姿态阈值配置；

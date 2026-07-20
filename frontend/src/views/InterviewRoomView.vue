@@ -1,7 +1,16 @@
 <script setup lang="ts">
-import { ChatLineRound, Finished, SwitchButton } from '@element-plus/icons-vue'
+import {
+  ChatLineRound,
+  Delete,
+  Finished,
+  Headset,
+  Microphone,
+  MuteNotification,
+  SwitchButton,
+  VideoPause,
+} from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import {
@@ -10,6 +19,14 @@ import {
   fetchInterviewApi,
   finishInterviewApi,
 } from '@/api/interviews'
+import {
+  cancelSpeech,
+  createSpeechRecognitionSession,
+  isSpeechRecognitionSupported,
+  isSpeechSynthesisSupported,
+  speakText,
+  type SpeechRecognitionSession,
+} from '@/services/voice'
 import type { InterviewDetail } from '@/types'
 
 const route = useRoute()
@@ -19,10 +36,35 @@ const sending = ref(false)
 const finishing = ref(false)
 const answer = ref('')
 const interview = ref<InterviewDetail | null>(null)
+const recognizing = ref(false)
+const interimSpeechText = ref('')
+const voiceError = ref('')
+const autoSpeak = ref(false)
+const speaking = ref(false)
+const speechRecognitionSupported = isSpeechRecognitionSupported()
+const speechSynthesisSupported = isSpeechSynthesisSupported()
+let recognitionSession: SpeechRecognitionSession | null = null
+let lastSpokenMessageId: number | null = null
 
 const interviewId = computed(() => Number(route.params.id))
 const readonlyAdminView = computed(() => route.path.startsWith('/admin/interviews'))
 const canAnswer = computed(() => interview.value?.status === 'IN_PROGRESS' && !readonlyAdminView.value)
+const latestAiMessage = computed(() => {
+  const messages = interview.value?.messages ?? []
+  return [...messages].reverse().find((message) => message.role === 'ASSISTANT') ?? null
+})
+const voiceStatusText = computed(() => {
+  if (!speechRecognitionSupported) {
+    return '当前浏览器不支持语音识别，已保留文字输入'
+  }
+  if (!canAnswer.value) {
+    return '当前面试不可回答，语音输入已关闭'
+  }
+  if (recognizing.value) {
+    return '正在听写回答'
+  }
+  return '可使用麦克风听写回答'
+})
 
 async function loadInterview() {
   if (!Number.isFinite(interviewId.value)) {
@@ -51,10 +93,13 @@ async function submitAnswer() {
     return
   }
 
+  stopRecognition()
+  cancelSpeech()
   sending.value = true
   try {
     interview.value = await answerInterviewApi(interviewId.value, { content })
     answer.value = ''
+    interimSpeechText.value = ''
   } catch {
     ElMessage.error('回答提交失败')
   } finally {
@@ -63,6 +108,8 @@ async function submitAnswer() {
 }
 
 async function finishInterview() {
+  stopRecognition()
+  cancelSpeech()
   finishing.value = true
   try {
     interview.value = await finishInterviewApi(interviewId.value)
@@ -78,7 +125,130 @@ function formatTime(value: string | null) {
   return value ? new Date(value).toLocaleString() : '-'
 }
 
+function startRecognition() {
+  if (!speechRecognitionSupported) {
+    ElMessage.warning('当前浏览器不支持语音识别，请使用文字输入')
+    return
+  }
+  if (!canAnswer.value || recognizing.value) {
+    return
+  }
+
+  voiceError.value = ''
+  recognitionSession = createSpeechRecognitionSession({
+    onStart() {
+      recognizing.value = true
+    },
+    onEnd() {
+      recognizing.value = false
+    },
+    onResult(result) {
+      interimSpeechText.value = result.interimText
+      if (result.finalText) {
+        answer.value = mergeAnswerText(answer.value, result.finalText)
+        interimSpeechText.value = ''
+      }
+    },
+    onError(message) {
+      voiceError.value = message
+      recognizing.value = false
+      ElMessage.warning(message)
+    },
+  })
+
+  if (!recognitionSession) {
+    voiceError.value = '当前浏览器不支持语音识别，请使用文字输入'
+    return
+  }
+
+  try {
+    recognitionSession.start()
+  } catch {
+    voiceError.value = '语音识别启动失败，请刷新页面或改用文字输入'
+    ElMessage.warning(voiceError.value)
+  }
+}
+
+function stopRecognition() {
+  if (!recognitionSession) {
+    recognizing.value = false
+    return
+  }
+  try {
+    recognitionSession.stop()
+  } catch {
+    recognitionSession.abort()
+  } finally {
+    recognitionSession = null
+    recognizing.value = false
+    interimSpeechText.value = ''
+  }
+}
+
+function clearVoiceDraft() {
+  answer.value = ''
+  interimSpeechText.value = ''
+  voiceError.value = ''
+}
+
+async function speakLatestQuestion(manual = true) {
+  if (!latestAiMessage.value) {
+    if (manual) {
+      ElMessage.warning('暂无可播报的问题')
+    }
+    return
+  }
+  if (!speechSynthesisSupported) {
+    if (manual) {
+      ElMessage.warning('当前浏览器不支持语音播报')
+    }
+    return
+  }
+
+  speaking.value = true
+  try {
+    await speakText(latestAiMessage.value.content)
+    lastSpokenMessageId = latestAiMessage.value.id
+  } catch (error) {
+    if (manual) {
+      ElMessage.warning(error instanceof Error ? error.message : '语音播报失败')
+    }
+  } finally {
+    speaking.value = false
+  }
+}
+
+function mergeAnswerText(current: string, incoming: string) {
+  const normalizedIncoming = incoming.trim()
+  if (!current.trim()) {
+    return normalizedIncoming
+  }
+  return `${current.trimEnd()} ${normalizedIncoming}`
+}
+
+watch(
+  () => [autoSpeak.value, latestAiMessage.value?.id, canAnswer.value] as const,
+  async ([enabled, messageId, answerable]) => {
+    if (!enabled || !answerable || !messageId || messageId === lastSpokenMessageId) {
+      return
+    }
+    await nextTick()
+    await speakLatestQuestion(false)
+  },
+)
+
+watch(canAnswer, (answerable) => {
+  if (!answerable) {
+    stopRecognition()
+    cancelSpeech()
+  }
+})
+
 onMounted(loadInterview)
+onBeforeUnmount(() => {
+  stopRecognition()
+  cancelSpeech()
+})
 </script>
 
 <template>
@@ -132,6 +302,49 @@ onMounted(loadInterview)
         </div>
 
         <div v-if="canAnswer" class="answer-panel">
+          <div class="voice-panel">
+            <div class="voice-status">
+              <el-icon><Headset /></el-icon>
+              <div>
+                <strong>语音辅助</strong>
+                <p>{{ voiceError || voiceStatusText }}</p>
+              </div>
+            </div>
+            <div class="voice-actions">
+              <el-button
+                v-if="!recognizing"
+                :icon="Microphone"
+                :disabled="!speechRecognitionSupported || sending || finishing"
+                @click="startRecognition"
+              >
+                开始听写
+              </el-button>
+              <el-button v-else :icon="VideoPause" type="warning" plain @click="stopRecognition">
+                停止听写
+              </el-button>
+              <el-button
+                :icon="Headset"
+                :loading="speaking"
+                :disabled="!speechSynthesisSupported || !latestAiMessage"
+                plain
+                @click="speakLatestQuestion()"
+              >
+                播报问题
+              </el-button>
+              <el-switch
+                v-model="autoSpeak"
+                :disabled="!speechSynthesisSupported"
+                inline-prompt
+                active-text="自动播报"
+                inactive-text="手动播报"
+              />
+              <el-button :icon="Delete" plain @click="clearVoiceDraft">清空草稿</el-button>
+            </div>
+            <div v-if="interimSpeechText" class="speech-preview" aria-live="polite">
+              <el-icon><MuteNotification /></el-icon>
+              <span>{{ interimSpeechText }}</span>
+            </div>
+          </div>
           <el-input
             v-model="answer"
             type="textarea"

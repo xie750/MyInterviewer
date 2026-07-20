@@ -350,6 +350,70 @@ h1 {
   margin-top: 20px;
 }
 
+.voice-panel {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 14px;
+  border: 1px solid #d8dee8;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 16px;
+}
+
+.voice-status {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: #111827;
+}
+
+.voice-status .el-icon {
+  margin-top: 3px;
+  color: #2563eb;
+  font-size: 20px;
+}
+
+.voice-status strong {
+  display: block;
+  line-height: 1.4;
+}
+
+.voice-status p {
+  margin: 4px 0 0;
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+.voice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.voice-actions .el-button {
+  margin-left: 0;
+}
+
+.speech-preview {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  border: 1px dashed #93c5fd;
+  border-radius: 8px;
+  background: #eff6ff;
+  padding: 10px 12px;
+  color: #1f2937;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.speech-preview .el-icon {
+  flex: 0 0 auto;
+  margin-top: 3px;
+  color: #2563eb;
+}
+
 .score-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

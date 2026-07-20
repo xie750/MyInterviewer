@@ -29,7 +29,7 @@ Spring Boot 3 后端
 - `api/`：接口请求封装；
 - `stores/`：Pinia 状态；
 - `router/`：路由和权限守卫；
-- `services/`：语音、姿态检测、虚拟人等前端能力封装；
+- `services/`：语音、姿态检测、虚拟人等前端能力封装；当前 `voice.ts` 使用浏览器 Web Speech API 做本地语音识别和播报降级；
 - `types/`：接口和业务类型定义。
 
 ## 当前决策状态
@@ -37,7 +37,7 @@ Spring Boot 3 后端
 以下内容待确认：
 
 - 大模型供应商；
-- 语音识别和语音合成供应商；
+- 后端语音识别和语音合成供应商；
 - 虚拟人技术方案；
 - 是否引入 Redis；
 - 部署方式。
@@ -51,3 +51,4 @@ Spring Boot 3 后端
 - 后端 AI 能力通过 `InterviewAiService` 统一封装，v0.1 默认使用本地规则型实现；
 - 前端使用 Vue 3 + TypeScript + Vite；
 - 前端已引入 Pinia、Vue Router、Axios 和 Element Plus。
+- v0.3 语音输入与问题播报优先使用浏览器本地 Web Speech API，不新增后端音频上传、转写或合成接口。
