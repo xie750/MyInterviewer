@@ -5,7 +5,10 @@ import com.kedaxunfei.myinterviewer.domain.InterviewerStyle;
 public record VirtualHumanResponse(
         String key,
         String name,
-        String description
+        String description,
+        String imageUrl,
+        String accentColor,
+        String badge
 ) {
 
     private static final String DEFAULT_KEY = "default-interviewer";
@@ -16,7 +19,10 @@ public record VirtualHumanResponse(
         return new VirtualHumanResponse(
                 fallback(style.getVirtualHumanKey(), DEFAULT_KEY),
                 fallback(style.getVirtualHumanName(), DEFAULT_NAME),
-                fallback(style.getVirtualHumanDescription(), DEFAULT_DESCRIPTION)
+                fallback(style.getVirtualHumanDescription(), DEFAULT_DESCRIPTION),
+                null,
+                null,
+                null
         );
     }
 

@@ -25,6 +25,7 @@ import {
   finishInterviewApi,
   reportPostureEventApi,
 } from '@/api/interviews'
+import { fetchPostureThresholdsApi } from '@/api/adminPosture'
 import {
   cancelSpeech,
   createSpeechRecognitionSession,
@@ -40,8 +41,12 @@ import {
   type LocalPostureEvent,
   type PostureMonitor,
 } from '@/services/posture'
-import { resolveVirtualHuman } from '@/services/virtualHuman'
-import type { InterviewDetail, PostureEvent, PostureEventType, PostureSeverity } from '@/types'
+import {
+  resolveVirtualHuman,
+  resolveVirtualHumanMotion,
+  type VirtualHumanMotionState,
+} from '@/services/virtualHuman'
+import type { InterviewDetail, PostureEvent, PostureEventType, PostureSeverity, PostureThreshold } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -61,6 +66,7 @@ const postureStarting = ref(false)
 const postureStatus = ref('摄像头姿态检测未开启')
 const postureError = ref('')
 const postureReporting = ref(false)
+const postureThresholds = ref<PostureThreshold[]>([])
 const virtualHumanLoadFailed = ref(false)
 const speechRecognitionSupported = isSpeechRecognitionSupported()
 const speechSynthesisSupported = isSpeechSynthesisSupported()
@@ -74,6 +80,28 @@ const readonlyAdminView = computed(() => route.path.startsWith('/admin/interview
 const canAnswer = computed(() => interview.value?.status === 'IN_PROGRESS' && !readonlyAdminView.value)
 const postureEvents = computed(() => interview.value?.postureEvents ?? [])
 const virtualHuman = computed(() => resolveVirtualHuman(interview.value?.style.virtualHuman))
+const virtualHumanMotionState = computed<VirtualHumanMotionState>(() => {
+  if (!interview.value) {
+    return 'READONLY'
+  }
+  if (sending.value || finishing.value) {
+    return 'THINKING'
+  }
+  if (speaking.value) {
+    return 'QUESTIONING'
+  }
+  if (interview.value.status === 'COMPLETED') {
+    return 'SUMMARY'
+  }
+  if (!canAnswer.value) {
+    return 'READONLY'
+  }
+  if (recognizing.value || Boolean(answer.value.trim()) || Boolean(interimSpeechText.value.trim())) {
+    return 'LISTENING'
+  }
+  return 'WAITING'
+})
+const virtualHumanMotion = computed(() => resolveVirtualHumanMotion(virtualHumanMotionState.value))
 const postureWarningCount = computed(
   () => postureEvents.value.filter((event) => event.severity !== 'INFO').length,
 )
@@ -111,6 +139,15 @@ async function loadInterview() {
     await router.replace(readonlyAdminView.value ? '/admin' : '/interviews')
   } finally {
     loading.value = false
+  }
+}
+
+async function loadPostureThresholds() {
+  try {
+    postureThresholds.value = await fetchPostureThresholdsApi()
+  } catch {
+    postureThresholds.value = []
+    postureStatus.value = '姿态阈值配置读取失败，已使用本地默认配置'
   }
 }
 
@@ -172,18 +209,24 @@ async function startPostureMonitor() {
 
   postureStarting.value = true
   postureError.value = ''
-  postureMonitor = createPostureMonitor({
-    onStatus(message) {
-      postureStatus.value = message
+  if (!postureThresholds.value.length) {
+    await loadPostureThresholds()
+  }
+  postureMonitor = createPostureMonitor(
+    {
+      onStatus(message) {
+        postureStatus.value = message
+      },
+      onEvent(event) {
+        void handlePostureEvent(event)
+      },
+      onError(event) {
+        postureError.value = event.detail
+        void handlePostureEvent(event)
+      },
     },
-    onEvent(event) {
-      void handlePostureEvent(event)
-    },
-    onError(event) {
-      postureError.value = event.detail
-      void handlePostureEvent(event)
-    },
-  })
+    postureThresholds.value,
+  )
 
   try {
     await nextTick()
@@ -414,7 +457,9 @@ watch(
   },
 )
 
-onMounted(loadInterview)
+onMounted(async () => {
+  await Promise.all([loadInterview(), loadPostureThresholds()])
+})
 onBeforeUnmount(() => {
   stopRecognition()
   cancelSpeech()
@@ -540,12 +585,20 @@ onBeforeUnmount(() => {
           <div class="section-toolbar">
             <div>
               <h2>虚拟面试官</h2>
-              <p>{{ interview.style.name }} · {{ virtualHuman.badge }}</p>
+              <p>{{ interview.style.name }} · {{ virtualHuman.badge }} · {{ virtualHumanMotion.label }}</p>
             </div>
-            <el-tag type="success">静态形象</el-tag>
+            <el-tag :type="virtualHumanMotion.tagType">{{ virtualHumanMotion.cue }}</el-tag>
           </div>
 
-          <div class="virtual-human-stage" :style="{ '--avatar-accent': virtualHuman.accent }">
+          <div
+            :class="['virtual-human-stage', virtualHumanMotion.className]"
+            :style="{ '--avatar-accent': virtualHuman.accent }"
+          >
+            <div class="motion-orbit" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </div>
             <img
               v-if="virtualHuman.src && !virtualHumanLoadFailed"
               :src="virtualHuman.src"
@@ -556,11 +609,15 @@ onBeforeUnmount(() => {
               <el-icon><UserFilled /></el-icon>
               <strong>{{ virtualHuman.initials }}</strong>
             </div>
+            <div class="motion-caption">
+              <span>{{ virtualHumanMotion.label }}</span>
+            </div>
           </div>
 
           <div class="virtual-human-copy">
             <strong>{{ virtualHuman.name }}</strong>
             <p>{{ virtualHuman.description }}</p>
+            <p class="virtual-human-motion-text">{{ virtualHumanMotion.description }}</p>
             <p v-if="virtualHuman.missingAsset || virtualHumanLoadFailed" class="virtual-human-degraded">
               虚拟人资源不可用，已切换为占位展示。
             </p>

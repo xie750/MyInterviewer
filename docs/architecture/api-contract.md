@@ -20,7 +20,7 @@
 
 业务异常使用相同结构返回，HTTP 状态码与 `code` 对齐。
 
-## v0.5 已实现接口
+## v1.0 已实现接口
 
 | 模块 | 路径 | 说明 |
 |---|---|---|
@@ -37,11 +37,18 @@
 | 面试报告 | `GET /api/interviews/{id}/report` | 当前用户报告 |
 | 姿态事件 | `POST /api/posture-events` | 当前用户上报自己进行中面试的结构化姿态事件 |
 | 姿态事件 | `GET /api/interviews/{id}/posture-events` | 当前用户查询自己面试的姿态事件 |
+| 姿态阈值 | `GET /api/posture-thresholds` | 登录用户读取启用的姿态阈值配置 |
 | 后台岗位 | `GET/POST/PUT/PATCH /api/admin/positions` | 岗位基础管理 |
 | 后台用户 | `GET /api/admin/users` | 用户列表 |
 | 后台用户 | `PATCH /api/admin/users/{id}/status` | 启停普通用户 |
 | 后台面试记录 | `GET /api/admin/interviews` | 全站面试记录 |
 | 后台面试详情 | `GET /api/admin/interviews/{id}` | 管理员只读查看任意面试详情 |
+| 后台姿态记录 | `GET /api/admin/posture-events` | 全站姿态事件筛选分页 |
+| 后台姿态阈值 | `GET /api/admin/posture-thresholds` | 管理员查询全部姿态阈值配置 |
+| 后台姿态阈值 | `PUT /api/admin/posture-thresholds/{id}` | 管理员更新姿态阈值配置 |
+| 后台虚拟人素材 | `GET /api/admin/virtual-humans` | 管理员查询虚拟人素材 |
+| 后台虚拟人素材 | `POST /api/admin/virtual-humans` | 管理员新增虚拟人素材 |
+| 后台虚拟人素材 | `PUT /api/admin/virtual-humans/{id}` | 管理员更新虚拟人素材 |
 
 ## 关键请求示例
 
@@ -129,6 +136,70 @@
 
 后端只接收结构化事件，不接收原始视频流、截图或帧数据。普通用户只能上报和查询自己的面试；已结束面试不再接受新事件。
 
+### 姿态阈值配置
+
+用户侧读取启用配置：
+
+```http
+GET /api/posture-thresholds
+```
+
+管理员更新配置：
+
+```json
+{
+  "eventType": "LOW_LIGHT",
+  "displayName": "画面亮度偏低",
+  "description": "平均亮度低于预警阈值时提示调整光线。",
+  "warningThreshold": 45,
+  "criticalThreshold": 28,
+  "enabled": true,
+  "sortOrder": 10
+}
+```
+
+前端读取失败时继续使用本地默认阈值，不阻断面试。
+
+### 后台姿态记录查询
+
+`GET /api/admin/posture-events` 支持：
+
+- `keyword`：搜索用户、显示名、详情或面试 ID；
+- `sessionId`：按面试 ID 筛选；
+- `eventType`：按姿态事件类型筛选；
+- `severity`：按严重级别筛选；
+- `page`、`pageSize`：分页。
+
+返回：
+
+```json
+{
+  "items": [],
+  "total": 0,
+  "page": 1,
+  "pageSize": 10
+}
+```
+
+### 虚拟人素材
+
+管理员新增或更新素材：
+
+```json
+{
+  "assetKey": "demo-coach",
+  "name": "演示教练",
+  "description": "用于演示的虚拟人素材配置",
+  "imageUrl": "https://example.com/demo.png",
+  "accentColor": "#0f766e",
+  "badge": "演示",
+  "enabled": true,
+  "sortOrder": 90
+}
+```
+
+`assetKey` 可对应前端内置资源，也可配合 `imageUrl` 展示外部图片。图片不可用时前端降级为占位展示。
+
 ### 用户状态
 
 ```json
@@ -142,6 +213,6 @@
 ## 后续接口模块
 
 - `/api/voice/*`：后端语音识别和语音合成；v0.3 暂不实现，当前语音输入和播报由浏览器本地 Web Speech API 完成；
-- `/api/admin/posture-events`：姿态记录后台；
-- `/api/admin/posture-config`：姿态阈值配置；
-- `/api/admin/virtual-humans`：虚拟人素材管理；v0.5 暂不实现，当前只使用内置静态资源。
+- `/api/export/*`：报告导出；
+- `/api/audit/*`：审计日志；
+- `/api/admin/assets/upload`：正式媒体素材上传和对象存储。

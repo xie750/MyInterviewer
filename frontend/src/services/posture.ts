@@ -1,4 +1,4 @@
-import type { PostureEventRequest, PostureEventType, PostureSeverity } from '@/types'
+import type { PostureEventRequest, PostureEventType, PostureSeverity, PostureThreshold } from '@/types'
 
 interface FaceDetectorBox {
   x: number
@@ -41,10 +41,27 @@ export interface PostureMonitor {
   stop(): void
 }
 
+export interface PostureRuntimeThresholds {
+  lowLightWarning: number
+  lowLightCritical: number
+  stillFrameLimit: number
+  faceCenterEdgePercent: number
+  tooClosePercent: number
+  tooFarPercent: number
+}
+
 const SAMPLE_WIDTH = 96
 const SAMPLE_HEIGHT = 54
 const SAMPLE_INTERVAL_MS = 2500
 const EVENT_COOLDOWN_MS = 30000
+const DEFAULT_THRESHOLDS: PostureRuntimeThresholds = {
+  lowLightWarning: 45,
+  lowLightCritical: 28,
+  stillFrameLimit: 5,
+  faceCenterEdgePercent: 28,
+  tooClosePercent: 68,
+  tooFarPercent: 14,
+}
 
 export function isCameraSupported() {
   return typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia)
@@ -64,7 +81,11 @@ export function createPostureEventRequest(
   }
 }
 
-export function createPostureMonitor(callbacks: PostureMonitorCallbacks): PostureMonitor {
+export function createPostureMonitor(
+  callbacks: PostureMonitorCallbacks,
+  thresholdConfigs: PostureThreshold[] = [],
+): PostureMonitor {
+  const thresholds = resolveRuntimeThresholds(thresholdConfigs)
   let stream: MediaStream | null = null
   let timerId: number | null = null
   let previousFrame: Uint8ClampedArray | null = null
@@ -144,10 +165,10 @@ export function createPostureMonitor(callbacks: PostureMonitorCallbacks): Postur
       luminanceTotal += frame[index] * 0.299 + frame[index + 1] * 0.587 + frame[index + 2] * 0.114
     }
     const average = luminanceTotal / (frame.length / 4)
-    if (average < 45) {
+    if (average < thresholds.lowLightWarning) {
       emit({
         eventType: 'LOW_LIGHT',
-        severity: average < 28 ? 'CRITICAL' : 'WARNING',
+        severity: average < thresholds.lowLightCritical ? 'CRITICAL' : 'WARNING',
         score: Math.min(100, Math.round(100 - average)),
         detail: '摄像头画面亮度偏低，建议打开灯光或调整屏幕角度',
       })
@@ -173,7 +194,7 @@ export function createPostureMonitor(callbacks: PostureMonitorCallbacks): Postur
       stillFrames = 0
     }
 
-    if (stillFrames >= 5) {
+    if (stillFrames >= thresholds.stillFrameLimit) {
       emit({
         eventType: 'TOO_STILL',
         severity: 'INFO',
@@ -200,7 +221,15 @@ export function createPostureMonitor(callbacks: PostureMonitorCallbacks): Postur
     const centerY = (box.y + box.height / 2) / SAMPLE_HEIGHT
     const widthRatio = box.width / SAMPLE_WIDTH
 
-    if (centerX < 0.28 || centerX > 0.72 || centerY < 0.24 || centerY > 0.76) {
+    const centerEdge = thresholds.faceCenterEdgePercent / 100
+    const centerVerticalEdge = Math.max(centerEdge - 0.04, 0.1)
+
+    if (
+      centerX < centerEdge
+      || centerX > 1 - centerEdge
+      || centerY < centerVerticalEdge
+      || centerY > 1 - centerVerticalEdge
+    ) {
       emit({
         eventType: 'FACE_OFF_CENTER',
         severity: 'WARNING',
@@ -208,7 +237,7 @@ export function createPostureMonitor(callbacks: PostureMonitorCallbacks): Postur
         detail: '人脸偏离画面中央，建议调整坐姿或摄像头角度',
       })
     }
-    if (widthRatio > 0.68) {
+    if (widthRatio > thresholds.tooClosePercent / 100) {
       emit({
         eventType: 'TOO_CLOSE',
         severity: 'WARNING',
@@ -216,7 +245,7 @@ export function createPostureMonitor(callbacks: PostureMonitorCallbacks): Postur
         detail: '人脸距离摄像头过近，建议稍微后移',
       })
     }
-    if (widthRatio < 0.14) {
+    if (widthRatio < thresholds.tooFarPercent / 100) {
       emit({
         eventType: 'TOO_FAR',
         severity: 'WARNING',
@@ -239,6 +268,19 @@ export function createPostureMonitor(callbacks: PostureMonitorCallbacks): Postur
   return {
     start,
     stop,
+  }
+}
+
+function resolveRuntimeThresholds(configs: PostureThreshold[]): PostureRuntimeThresholds {
+  const enabled = new Map(configs.filter((config) => config.enabled).map((config) => [config.eventType, config]))
+
+  return {
+    lowLightWarning: enabled.get('LOW_LIGHT')?.warningThreshold ?? DEFAULT_THRESHOLDS.lowLightWarning,
+    lowLightCritical: enabled.get('LOW_LIGHT')?.criticalThreshold ?? DEFAULT_THRESHOLDS.lowLightCritical,
+    stillFrameLimit: enabled.get('TOO_STILL')?.warningThreshold ?? DEFAULT_THRESHOLDS.stillFrameLimit,
+    faceCenterEdgePercent: enabled.get('FACE_OFF_CENTER')?.warningThreshold ?? DEFAULT_THRESHOLDS.faceCenterEdgePercent,
+    tooClosePercent: enabled.get('TOO_CLOSE')?.warningThreshold ?? DEFAULT_THRESHOLDS.tooClosePercent,
+    tooFarPercent: enabled.get('TOO_FAR')?.warningThreshold ?? DEFAULT_THRESHOLDS.tooFarPercent,
   }
 }
 

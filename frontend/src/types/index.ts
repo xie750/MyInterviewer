@@ -64,6 +64,16 @@ export interface VirtualHumanProfile {
   key: string
   name: string
   description: string
+  imageUrl?: string | null
+  accentColor?: string | null
+  badge?: string | null
+}
+
+export interface PageResponse<T> {
+  items: T[]
+  total: number
+  page: number
+  pageSize: number
 }
 
 export interface InterviewerStyle {
@@ -123,6 +133,69 @@ export interface PostureEvent {
   detail: string | null
   occurredAt: string
   createdAt: string
+}
+
+export interface AdminPostureEvent {
+  id: number
+  sessionId: number
+  userId: number
+  username: string
+  displayName: string
+  eventType: PostureEventType
+  severity: PostureSeverity
+  score: number
+  detail: string | null
+  occurredAt: string
+  createdAt: string
+  sessionStartedAt: string | null
+}
+
+export interface PostureThreshold {
+  id: number
+  eventType: PostureEventType
+  displayName: string
+  description: string | null
+  warningThreshold: number | null
+  criticalThreshold: number | null
+  enabled: boolean
+  sortOrder: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface PostureThresholdRequest {
+  eventType: PostureEventType
+  displayName: string
+  description: string
+  warningThreshold: number | null
+  criticalThreshold: number | null
+  enabled: boolean
+  sortOrder: number
+}
+
+export interface VirtualHumanAsset {
+  id: number
+  assetKey: string
+  name: string
+  description: string | null
+  imageUrl: string | null
+  accentColor: string | null
+  badge: string | null
+  enabled: boolean
+  sortOrder: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface VirtualHumanAssetRequest {
+  assetKey: string
+  name: string
+  description: string
+  imageUrl: string
+  accentColor: string
+  badge: string
+  enabled: boolean
+  sortOrder: number
 }
 
 export interface InterviewMessage {

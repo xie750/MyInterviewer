@@ -2,6 +2,8 @@ DROP TABLE IF EXISTS interview_report;
 DROP TABLE IF EXISTS posture_event;
 DROP TABLE IF EXISTS interview_message;
 DROP TABLE IF EXISTS interview_session;
+DROP TABLE IF EXISTS posture_threshold_config;
+DROP TABLE IF EXISTS virtual_human_asset;
 DROP TABLE IF EXISTS interviewer_style;
 DROP TABLE IF EXISTS job_position;
 DROP TABLE IF EXISTS sys_user;
@@ -98,4 +100,31 @@ CREATE TABLE posture_event (
     detail VARCHAR(500),
     occurred_at TIMESTAMP NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE virtual_human_asset (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    asset_key VARCHAR(80) NOT NULL UNIQUE,
+    name VARCHAR(80) NOT NULL,
+    description VARCHAR(500),
+    image_url VARCHAR(500),
+    accent_color VARCHAR(20),
+    badge VARCHAR(40),
+    enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    sort_order INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE posture_threshold_config (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    event_type VARCHAR(40) NOT NULL UNIQUE,
+    display_name VARCHAR(80) NOT NULL,
+    description VARCHAR(500),
+    warning_threshold INT,
+    critical_threshold INT,
+    enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    sort_order INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

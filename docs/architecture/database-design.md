@@ -1,6 +1,6 @@
 # 数据库设计
 
-## v0.5 已实现实体
+## v1.0 已实现实体
 
 | 表名 | 阶段 | 作用 |
 |---|---|---|
@@ -11,6 +11,8 @@
 | `interview_message` | MVP | AI 与用户的问答消息 |
 | `interview_report` | MVP | 评分和总结报告 |
 | `posture_event` | v0.4 | 单场面试的结构化姿态/画面状态事件 |
+| `virtual_human_asset` | v0.7 | 管理员维护的虚拟人素材元数据 |
+| `posture_threshold_config` | v0.7 | 管理员维护的姿态检测阈值配置 |
 
 ## 关键表结构
 
@@ -107,6 +109,7 @@ V003__add_interview_mvp_tables.sql
 V004__add_resume_context_to_interview_session.sql
 V005__add_posture_event.sql
 V006__add_virtual_human_to_interviewer_style.sql
+V007__add_admin_delivery_tables.sql
 ```
 
 根目录 `database/migrations/` 保留同名迁移副本，便于独立查看数据库演进。
@@ -117,8 +120,25 @@ v0.2 不创建独立简历表，不保存原始简历文件。`interview_session
 
 ## 姿态事件隐私边界
 
-v0.4 只保存结构化姿态事件，不保存原始视频流、截图或帧数据。事件用于本人面试详情和管理员只读详情展示；管理员全站姿态记录后台和阈值配置留待后续版本。
+v0.4 起只保存结构化姿态事件，不保存原始视频流、截图或帧数据。事件用于本人面试详情、管理员只读详情和 v0.7 全站姿态记录后台；阈值配置保存在 `posture_threshold_config` 中，仍只影响浏览器本地检测逻辑。
 
 ## 虚拟人展示配置边界
 
-v0.5 不新增独立虚拟人素材表。虚拟人配置以字段形式绑定在 `interviewer_style` 上，只保存内置资源 key、展示名称和说明；真实图片资源在前端构建产物中，不保存用户上传素材。
+v0.5 到 v0.6 阶段，虚拟人配置以字段形式绑定在 `interviewer_style` 上，只保存内置资源 key、展示名称和说明。v0.7 新增 `virtual_human_asset` 作为管理员可维护的素材元数据表，但仍不保存上传媒体文件。
+
+### `virtual_human_asset`
+
+- `asset_key`：资源 key，唯一，可对应前端内置资源；
+- `name`、`description`：展示名称和说明；
+- `image_url`：可选外部图片地址，不做后端文件存储；
+- `accent_color`、`badge`：前端预览和展示辅助信息；
+- `enabled`、`sort_order`：后台启停和排序。
+
+### `posture_threshold_config`
+
+- `event_type`：姿态事件类型，唯一；
+- `display_name`、`description`：后台展示文案；
+- `warning_threshold`、`critical_threshold`：前端本地检测使用的阈值；
+- `enabled`、`sort_order`：启停和排序。
+
+阈值只影响浏览器端结构化检测逻辑，不改变“原始视频不上传”的隐私边界。

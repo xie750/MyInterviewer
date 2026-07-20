@@ -12,10 +12,16 @@ import com.kedaxunfei.myinterviewer.common.ErrorCodes;
 import com.kedaxunfei.myinterviewer.domain.InterviewSession;
 import com.kedaxunfei.myinterviewer.domain.InterviewStatus;
 import com.kedaxunfei.myinterviewer.domain.PostureEvent;
+import com.kedaxunfei.myinterviewer.domain.PostureEventType;
+import com.kedaxunfei.myinterviewer.domain.PostureSeverity;
+import com.kedaxunfei.myinterviewer.domain.SysUser;
+import com.kedaxunfei.myinterviewer.dto.AdminPostureEventResponse;
+import com.kedaxunfei.myinterviewer.dto.PageResponse;
 import com.kedaxunfei.myinterviewer.dto.PostureEventRequest;
 import com.kedaxunfei.myinterviewer.dto.PostureEventResponse;
 import com.kedaxunfei.myinterviewer.repository.InterviewSessionMapper;
 import com.kedaxunfei.myinterviewer.repository.PostureEventMapper;
+import com.kedaxunfei.myinterviewer.repository.SysUserMapper;
 import com.kedaxunfei.myinterviewer.security.AuthenticatedUser;
 
 @Service
@@ -23,10 +29,15 @@ public class PostureEventService {
 
     private final PostureEventMapper postureEventMapper;
     private final InterviewSessionMapper interviewSessionMapper;
+    private final SysUserMapper sysUserMapper;
 
-    public PostureEventService(PostureEventMapper postureEventMapper, InterviewSessionMapper interviewSessionMapper) {
+    public PostureEventService(
+            PostureEventMapper postureEventMapper,
+            InterviewSessionMapper interviewSessionMapper,
+            SysUserMapper sysUserMapper) {
         this.postureEventMapper = postureEventMapper;
         this.interviewSessionMapper = interviewSessionMapper;
+        this.sysUserMapper = sysUserMapper;
     }
 
     @Transactional
@@ -63,6 +74,32 @@ public class PostureEventService {
                 .toList();
     }
 
+    public PageResponse<AdminPostureEventResponse> listAdminEvents(
+            Long sessionId,
+            String keyword,
+            PostureEventType eventType,
+            PostureSeverity severity,
+            int page,
+            int pageSize
+    ) {
+        LambdaQueryWrapper<PostureEvent> wrapper = new LambdaQueryWrapper<PostureEvent>()
+                .eq(sessionId != null, PostureEvent::getSessionId, sessionId)
+                .eq(eventType != null, PostureEvent::getEventType, eventType)
+                .eq(severity != null, PostureEvent::getSeverity, severity)
+                .orderByDesc(PostureEvent::getOccurredAt)
+                .orderByDesc(PostureEvent::getId);
+
+        List<AdminPostureEventResponse> responses = postureEventMapper.selectList(wrapper).stream()
+                .map(event -> {
+                    SysUser user = sysUserMapper.selectById(event.getUserId());
+                    InterviewSession session = interviewSessionMapper.selectById(event.getSessionId());
+                    return AdminPostureEventResponse.from(event, user, session);
+                })
+                .filter(event -> matchesKeyword(event, keyword))
+                .toList();
+        return PageResponse.of(responses, page, pageSize);
+    }
+
     private List<PostureEvent> listEventEntities(Long sessionId) {
         return postureEventMapper.selectList(new LambdaQueryWrapper<PostureEvent>()
                 .eq(PostureEvent::getSessionId, sessionId)
@@ -84,5 +121,20 @@ public class PostureEventService {
         }
         String normalized = value.replaceAll("\\s+", " ").trim();
         return normalized.length() <= 500 ? normalized : normalized.substring(0, 500);
+    }
+
+    private boolean matchesKeyword(AdminPostureEventResponse event, String keyword) {
+        if (keyword == null || keyword.isBlank()) {
+            return true;
+        }
+        String normalized = keyword.trim().toLowerCase();
+        return contains(event.username(), normalized)
+                || contains(event.displayName(), normalized)
+                || contains(event.detail(), normalized)
+                || event.sessionId().toString().contains(normalized);
+    }
+
+    private boolean contains(String value, String keyword) {
+        return value != null && value.toLowerCase().contains(keyword);
     }
 }
