@@ -708,32 +708,19 @@ textarea {
   padding: 16px;
   box-sizing: border-box;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 364px;
-  gap: 16px;
-}
-
-.video-stage {
-  min-width: 0;
-  min-height: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.video-grid {
-  width: 100%;
-  max-width: min(1080px, calc((100vh - 130px) * 1.72));
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 16px;
 }
 
 .video-card {
   position: relative;
-  aspect-ratio: 4 / 3;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
   border-radius: 14px;
   background: #202734;
+  display: flex;
+  flex-direction: column;
 }
 
 .video-card video,
@@ -742,6 +729,8 @@ textarea {
   height: 100%;
   display: block;
   object-fit: cover;
+  flex: 1;
+  min-height: 0;
 }
 
 .interviewer-card {
@@ -753,11 +742,19 @@ textarea {
 .interviewer-card img {
   object-fit: cover;
   width: 100%;
-  height: 100%;
 }
 
 .candidate-card video {
   transform: scaleX(-1);
+}
+
+.candidate-card {
+  flex-direction: column;
+}
+
+.candidate-card video {
+  flex: 1;
+  min-height: 0;
 }
 
 .avatar-placeholder {
@@ -794,6 +791,7 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-shrink: 0;
 }
 
 .name-badge {
@@ -1131,100 +1129,80 @@ textarea {
   border-radius: 16px;
 }
 
+/* ── 雷达图 ──────────────────────────────────────────────── */
 .radar-chart {
-  position: relative;
-  width: 260px;
-  height: 260px;
+  width: 280px;
+  height: 280px;
   margin: 24px auto 0;
 }
 
-.radar-grid,
-.radar-fill {
-  position: absolute;
-  inset: 0;
-  margin: auto;
+.radar-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
 }
 
-.radar-grid {
-  border: 1px solid #dbeafe;
-  background: rgb(37 99 235 / 4%);
-  clip-path: polygon(50% 6%, 90% 28%, 90% 72%, 50% 94%, 10% 72%, 10% 28%);
+.rgrid {
+  fill: none;
+  stroke: #e2e8f0;
+  stroke-width: 1;
 }
 
-.radar-grid.r2 {
-  inset: 36px;
+.raxis {
+  stroke: #e2e8f0;
+  stroke-width: 0.8;
+  stroke-dasharray: 3 3;
 }
 
-.radar-grid.r3 {
-  inset: 72px;
+.rdata {
+  fill: url(#radarFillGrad);
+  stroke: #3b82f6;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  animation: radarIn 0.8s ease-out;
 }
 
-.radar-fill {
-  background: rgb(47 107 255 / 14%);
-  outline: 2px solid #2563eb;
+.rdot {
+  fill: #ffffff;
+  stroke: #3b82f6;
+  stroke-width: 2.5;
+  opacity: 0;
+  animation: dotIn 0.4s ease-out forwards;
 }
 
-.radar-labels {
-  position: absolute;
-  inset: 0;
+.rlbl-name {
+  font-size: 12px;
+  fill: #475569;
+  font-weight: 500;
 }
 
-.radar-lbl {
-  position: absolute;
+.rlbl-score {
   font-size: 13px;
-  color: #475569;
-  white-space: nowrap;
-  transform: translate(-50%, -50%);
+  font-weight: 700;
 }
 
-.radar-lbl.top {
-  top: 2%;
-  left: 50%;
-  transform: translate(-50%, 0);
+.rlbl-score.high { fill: #22c55e; }
+.rlbl-score.mid  { fill: #f59e0b; }
+.rlbl-score.low  { fill: #ef4444; }
+
+.radar-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 280px;
+  color: #94a3b8;
+  font-size: 14px;
 }
 
-.radar-lbl.top-right {
-  top: 18%;
-  left: 96%;
-  transform: translate(0, -50%);
+@keyframes radarIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
-.radar-lbl.right {
-  top: 50%;
-  right: -10%;
-  left: auto;
-  transform: translateY(-50%);
-}
-
-.radar-lbl.bottom-right {
-  top: 80%;
-  left: 96%;
-  transform: translate(0, -50%);
-}
-
-.radar-lbl.bottom {
-  bottom: 0%;
-  left: 50%;
-  top: auto;
-  transform: translate(-50%, 0);
-}
-
-.radar-lbl.bottom-left {
-  top: 80%;
-  left: 4%;
-  transform: translate(0, -50%);
-}
-
-.radar-tooltip {
-  display: inline-block;
-  margin-left: 4px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  background: #22c55e;
-  color: #ffffff;
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1.4;
+@keyframes dotIn {
+  from { opacity: 0; transform: scale(0); }
+  to   { opacity: 1; transform: scale(1); }
 }
 
 .metric-list {
@@ -1509,11 +1487,12 @@ textarea {
 
 @media (max-width: 1100px) {
   .interview-main {
-    grid-template-columns: minmax(0, 1fr) 320px;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
   }
 
-  .video-grid {
-    max-width: min(600px, calc((100vh - 130px) * 1.45));
+  .interview-panel {
+    padding: 12px;
   }
 }
 
@@ -1533,14 +1512,15 @@ textarea {
   .interview-main {
     height: auto;
     grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
   }
 
   .interview-panel {
     min-height: 560px;
   }
 
-  .video-stage {
-    min-height: 300px;
+  .video-card {
+    aspect-ratio: 4 / 3;
   }
 }
 

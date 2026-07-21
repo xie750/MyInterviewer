@@ -129,33 +129,70 @@ const reportMetrics = computed(() => {
   if (!report) {
     return []
   }
+  const { totalScore, technicalScore, communicationScore, logicScore } = report
   return [
-    { label: '专业知识', value: report.technicalScore },
-    { label: '技能匹配', value: Math.round((report.technicalScore + report.totalScore) / 2) },
-    { label: '语言表达', value: report.communicationScore },
-    { label: '逻辑思维', value: report.logicScore },
-    { label: '创新能力', value: Math.max(45, report.totalScore - 10) },
-    { label: '应变抗压', value: Math.max(45, Math.round((report.logicScore + report.communicationScore) / 2) - 8) },
+    { label: '专业知识', value: technicalScore },
+    { label: '技能匹配', value: clamp01(Math.round(totalScore * 0.5 + technicalScore * 0.5)) },
+    { label: '语言表达', value: communicationScore },
+    { label: '逻辑思维', value: logicScore },
+    { label: '应变抗压', value: clamp01(Math.round(communicationScore * 0.5 + logicScore * 0.5 + 5)) },
+    { label: '创新能力', value: clamp01(Math.round(totalScore * 0.5 + Math.max(0, totalScore - technicalScore) * 0.5)) },
   ]
 })
-const radarPoints = computed(() => {
-  if (!reportMetrics.value.length) {
-    return ''
-  }
-  const center = 50
-  const maxRadius = 38
-  return reportMetrics.value
-    .map((metric, index) => {
-      const angle = (-90 + index * 60) * (Math.PI / 180)
-      const radius = maxRadius * (metric.value / 100)
-      return `${center + Math.cos(angle) * radius}% ${center + Math.sin(angle) * radius}%`
-    })
-    .join(', ')
-})
 
-function radarLabelClass(index: number): string {
-  const classes = ['top', 'top-right', 'right', 'bottom-right', 'bottom', 'bottom-left']
-  return classes[index] ?? ''
+// ── SVG 雷达图 ──────────────────────────────────────────────
+const RADAR_CX = 150
+const RADAR_CY = 150
+const RADAR_R = 108
+const RADAR_LABEL_R = 138
+const RADAR_LEVELS = 4
+const RADAR_ANGLES = [-90, -30, 30, 90, 150, 210].map(d => (d * Math.PI) / 180)
+
+function polar(cx: number, cy: number, r: number, angle: number) {
+  return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) }
+}
+
+function clamp01(v: number) {
+  return Math.max(0, Math.min(100, Math.round(v)))
+}
+
+const radarGridHex = computed(() =>
+  Array.from({ length: RADAR_LEVELS }, (_, level) => {
+    const r = (RADAR_R / RADAR_LEVELS) * (level + 1)
+    return RADAR_ANGLES.map(a => polar(RADAR_CX, RADAR_CY, r, a))
+      .map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
+  })
+)
+
+const radarAxes = computed(() =>
+  RADAR_ANGLES.map(a => polar(RADAR_CX, RADAR_CY, RADAR_R, a))
+)
+
+const radarDataPts = computed(() =>
+  reportMetrics.value.map((m, i) => {
+    const r = RADAR_R * (m.value / 100)
+    return polar(RADAR_CX, RADAR_CY, r, RADAR_ANGLES[i])
+  })
+)
+
+const radarPolygon = computed(() =>
+  radarDataPts.value.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
+)
+
+const radarLabelPos = computed(() =>
+  RADAR_ANGLES.map(a => {
+    const p = polar(RADAR_CX, RADAR_CY, RADAR_LABEL_R, a)
+    const cosA = Math.cos(a)
+    const anchor: 'start' | 'middle' | 'end' =
+      cosA > 0.2 ? 'start' : cosA < -0.2 ? 'end' : 'middle'
+    return { x: p.x, y: p.y, anchor }
+  })
+)
+
+function scoreColorClass(value: number) {
+  if (value >= 75) return 'high'
+  if (value >= 60) return 'mid'
+  return 'low'
 }
 
 async function loadInterview() {
@@ -571,22 +608,33 @@ onBeforeUnmount(() => {
         <section v-if="interview.report" class="report-grid">
           <article class="report-card radar-card">
             <h2>能力雷达图</h2>
-            <div class="radar-chart">
-              <span class="radar-grid r1" />
-              <span class="radar-grid r2" />
-              <span class="radar-grid r3" />
-              <span class="radar-fill" :style="{ clipPath: `polygon(${radarPoints})` }" />
-              <div class="radar-labels">
-                <span
-                  v-for="(metric, index) in reportMetrics"
-                  :key="metric.label"
-                  class="radar-lbl"
-                  :class="radarLabelClass(index)"
-                >
-                  {{ metric.label }}
-                  <span class="radar-tooltip">{{ metric.value }} 分</span>
-                </span>
-              </div>
+            <div class="radar-chart" v-if="reportMetrics.length > 0">
+              <svg viewBox="0 0 300 300" class="radar-svg">
+                <defs>
+                  <linearGradient id="radarFillGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.28" />
+                    <stop offset="100%" stop-color="#6366f1" stop-opacity="0.08" />
+                  </linearGradient>
+                </defs>
+                <polygon v-for="(pts, i) in radarGridHex" :key="'g' + i"
+                         :points="pts" class="rgrid" />
+                <line v-for="(end, i) in radarAxes" :key="'a' + i"
+                      x1="150" y1="150" :x2="end.x.toFixed(1)" :y2="end.y.toFixed(1)" class="raxis" />
+                <polygon v-if="radarPolygon" :points="radarPolygon" class="rdata" />
+                <circle v-for="(pt, i) in radarDataPts" :key="'d' + i"
+                        :cx="pt.x.toFixed(1)" :cy="pt.y.toFixed(1)" r="5.5" class="rdot"
+                        :style="{ animationDelay: `${0.5 + i * 0.08}s` }" />
+                <g v-for="(m, i) in reportMetrics" :key="'l' + i">
+                  <text :x="radarLabelPos[i].x" :y="radarLabelPos[i].y - 5"
+                        :text-anchor="radarLabelPos[i].anchor" class="rlbl-name">{{ m.label }}</text>
+                  <text :x="radarLabelPos[i].x" :y="radarLabelPos[i].y + 11"
+                        :text-anchor="radarLabelPos[i].anchor"
+                        class="rlbl-score" :class="scoreColorClass(m.value)">{{ m.value }}</text>
+                </g>
+              </svg>
+            </div>
+            <div v-else class="radar-empty">
+              <p>暂无评估数据</p>
             </div>
           </article>
 
@@ -647,41 +695,37 @@ onBeforeUnmount(() => {
       </header>
 
       <section class="interview-main">
-        <div class="video-stage">
-          <div class="video-grid">
-            <article class="video-card interviewer-card" :style="{ '--avatar-accent': virtualHuman.accent }">
-              <img
-                v-if="virtualHuman.src && !virtualHumanLoadFailed"
-                :src="virtualHuman.src"
-                :alt="virtualHuman.name"
-                @error="virtualHumanLoadFailed = true"
-              >
-              <div v-else class="avatar-placeholder">
-                <el-icon><UserFilled /></el-icon>
-              </div>
-              <div class="video-badges">
-                <span class="name-badge">{{ virtualHuman.name }}</span>
-                <button class="mic-btn" type="button" aria-label="麦克风">
-                  <el-icon><Microphone /></el-icon>
-                </button>
-              </div>
-            </article>
-
-            <article class="video-card candidate-card">
-              <video ref="cameraVideo" muted playsinline aria-label="本地摄像头预览" />
-              <div v-if="!postureActive" class="avatar-placeholder camera-off">
-                <el-icon><Camera /></el-icon>
-                <span>摄像头未开启</span>
-              </div>
-              <div class="video-badges">
-                <span class="name-badge">您的画面</span>
-                <button class="mic-btn" type="button" aria-label="麦克风">
-                  <el-icon><Microphone /></el-icon>
-                </button>
-              </div>
-            </article>
+        <article class="video-card interviewer-card" :style="{ '--avatar-accent': virtualHuman.accent }">
+          <img
+            v-if="virtualHuman.src && !virtualHumanLoadFailed"
+            :src="virtualHuman.src"
+            :alt="virtualHuman.name"
+            @error="virtualHumanLoadFailed = true"
+          >
+          <div v-else class="avatar-placeholder">
+            <el-icon><UserFilled /></el-icon>
           </div>
-        </div>
+          <div class="video-badges">
+            <span class="name-badge">{{ virtualHuman.name }}</span>
+            <button class="mic-btn" type="button" aria-label="麦克风">
+              <el-icon><Microphone /></el-icon>
+            </button>
+          </div>
+        </article>
+
+        <article class="video-card candidate-card">
+          <video ref="cameraVideo" muted playsinline aria-label="本地摄像头预览" />
+          <div v-if="!postureActive" class="avatar-placeholder camera-off">
+            <el-icon><Camera /></el-icon>
+            <span>摄像头未开启</span>
+          </div>
+          <div class="video-badges">
+            <span class="name-badge">您的画面</span>
+            <button class="mic-btn" type="button" aria-label="麦克风">
+              <el-icon><Microphone /></el-icon>
+            </button>
+          </div>
+        </article>
 
         <aside class="interview-panel">
           <div class="panel-header">
