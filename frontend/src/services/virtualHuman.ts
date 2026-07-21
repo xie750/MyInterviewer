@@ -5,12 +5,8 @@
  * 当前为静态 SVG + CSS 类切换，口型同步和动画尚未实现。
  */
 
-import defaultInterviewerAvatar from '@/assets/virtual-humans/default-interviewer.svg'
-import hrPartnerAvatar from '@/assets/virtual-humans/hr-partner.svg'
-import sternPanelAvatar from '@/assets/virtual-humans/stern-panel.svg'
-import techArchitectAvatar from '@/assets/virtual-humans/tech-architect.svg'
-import warmGuideAvatar from '@/assets/virtual-humans/warm-guide.svg'
 import type { VirtualHumanProfile } from '@/types'
+import { ASSET_MAP, resolveInterviewerAsset, type InterviewerAsset } from '@/utils/interviewerAssets'
 
 export interface VirtualHumanViewModel extends VirtualHumanProfile {
   src: string | null
@@ -35,12 +31,6 @@ export interface VirtualHumanMotion {
   cue: string
   tagType: 'success' | 'warning' | 'info' | 'primary'
   className: string
-}
-
-interface VirtualHumanAsset {
-  src: string
-  accent: string
-  badge: string
 }
 
 const motions: Record<VirtualHumanMotionState, Omit<VirtualHumanMotion, 'state'>> = {
@@ -94,49 +84,26 @@ const defaultProfile: VirtualHumanProfile = {
   description: '基础静态面试官形象，资源不可用时保持占位展示。',
 }
 
-const assets: Record<string, VirtualHumanAsset> = {
-  'default-interviewer': {
-    src: defaultInterviewerAvatar,
-    accent: '#2563eb',
-    badge: '通用',
-  },
-  'stern-panel': {
-    src: sternPanelAvatar,
-    accent: '#be123c',
-    badge: '压力',
-  },
-  'warm-guide': {
-    src: warmGuideAvatar,
-    accent: '#0f766e',
-    badge: '引导',
-  },
-  'tech-architect': {
-    src: techArchitectAvatar,
-    accent: '#7c3aed',
-    badge: '技术',
-  },
-  'hr-partner': {
-    src: hrPartnerAvatar,
-    accent: '#b45309',
-    badge: '综合',
-  },
-}
-
 export function resolveVirtualHuman(profile: VirtualHumanProfile | null | undefined): VirtualHumanViewModel {
   const normalized = {
     key: profile?.key || defaultProfile.key,
     name: profile?.name || defaultProfile.name,
     description: profile?.description || defaultProfile.description,
   }
-  const asset = assets[normalized.key]
+  const fallback: InterviewerAsset | undefined = ASSET_MAP[normalized.key]
+
+  // 优先使用后端返回的数据，缺失时 fallback 到统一映射表（interviewerAssets.ts）
+  const src = profile?.imageUrl || fallback?.imageUrl || null
+  const accent = profile?.accentColor || fallback?.accentColor || '#64748b'
+  const badge = profile?.badge || fallback?.badge || '降级'
 
   return {
     ...normalized,
-    src: profile?.imageUrl || asset?.src || null,
-    accent: profile?.accentColor || asset?.accent || '#64748b',
-    badge: profile?.badge || asset?.badge || '降级',
+    src,
+    accent,
+    badge,
     initials: normalized.name.slice(0, 2),
-    missingAsset: !profile?.imageUrl && !asset,
+    missingAsset: !src,
   }
 }
 
