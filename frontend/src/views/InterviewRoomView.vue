@@ -130,10 +130,6 @@ const voiceStatusText = computed(() => {
   }
   return '可使用麦克风听写回答'
 })
-const scoreRingStyle = computed(() => {
-  const score = interview.value?.report?.totalScore ?? 0
-  return { '--score-deg': `${Math.max(0, Math.min(score, 100)) * 3.6}deg` }
-})
 const reportMetrics = computed(() => {
   const report = interview.value?.report
   if (!report) {
@@ -162,6 +158,11 @@ const radarPoints = computed(() => {
     })
     .join(', ')
 })
+
+function radarLabelClass(index: number): string {
+  const classes = ['top', 'top-right', 'right', 'bottom-right', 'bottom', 'bottom-left']
+  return classes[index] ?? ''
+}
 
 async function loadInterview() {
   if (!Number.isFinite(interviewId.value)) {
@@ -545,10 +546,29 @@ onBeforeUnmount(() => {
         </div>
 
         <section v-if="interview.report" class="score-hero">
-          <div class="score-ring" :style="scoreRingStyle">
-            <span class="score-value">{{ interview.report.totalScore }}</span>
-            <span class="score-divider">/</span>
-            <span class="score-max">100</span>
+          <div class="score-ring">
+            <svg viewBox="0 0 120 120" class="score-ring-svg">
+              <defs>
+                <linearGradient id="scoreRingGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#3b82f6" />
+                  <stop offset="100%" stop-color="#6366f1" />
+                </linearGradient>
+              </defs>
+              <circle class="score-ring-bg" cx="60" cy="60" r="54" />
+              <circle
+                class="score-ring-progress"
+                cx="60"
+                cy="60"
+                r="54"
+                :stroke-dasharray="`${2 * Math.PI * 54}`"
+                :stroke-dashoffset="`${2 * Math.PI * 54 * (1 - Math.max(0, Math.min(interview.report.totalScore, 100)) / 100)}`"
+              />
+            </svg>
+            <div class="score-ring-text">
+              <span class="score-value">{{ interview.report.totalScore }}</span>
+              <span class="score-divider">/</span>
+              <span class="score-max">100</span>
+            </div>
           </div>
           <h2>综合评分</h2>
           <p>候选人完成了 {{ answeredCount }} 轮面试问答，共回答了 {{ interview.questionCount }} 个问题。</p>
@@ -563,15 +583,15 @@ onBeforeUnmount(() => {
               <span class="radar-grid r3" />
               <span class="radar-fill" :style="{ clipPath: `polygon(${radarPoints})` }" />
               <div class="radar-labels">
-                <span class="radar-lbl top">专业知识</span>
-                <span class="radar-lbl top-right">
-                  技能匹配
-                  <span class="radar-tooltip">60 分</span>
+                <span
+                  v-for="(metric, index) in reportMetrics"
+                  :key="metric.label"
+                  class="radar-lbl"
+                  :class="radarLabelClass(index)"
+                >
+                  {{ metric.label }}
+                  <span class="radar-tooltip">{{ metric.value }} 分</span>
                 </span>
-                <span class="radar-lbl right">语言表达</span>
-                <span class="radar-lbl bottom-right">逻辑思维</span>
-                <span class="radar-lbl bottom">创新能力</span>
-                <span class="radar-lbl bottom-left">应变抗压</span>
               </div>
             </div>
           </article>
@@ -605,13 +625,15 @@ onBeforeUnmount(() => {
           <div class="section-toolbar">
             <div>
               <h2><el-icon><Document /></el-icon> 面试对话记录</h2>
-              <p>共 {{ interview.messages.length }} 条消息，候选人回答了 {{ answeredCount }} 个问题。</p>
             </div>
+            <p>共 {{ interview.messages.length }} 条消息，候选人回答了 {{ answeredCount }} 个问题。</p>
           </div>
           <div class="dialogue-list">
             <div v-for="message in interview.messages" :key="message.id" class="dialogue-row" :class="message.role">
-              <span class="role-label">{{ message.role === 'USER' ? '候选人' : '面试官' }}</span>
-              <p>{{ message.content }}</p>
+              <div class="dialogue-bubble">
+                <span class="role-label">{{ message.role === 'USER' ? '候选人' : '面试官' }}</span>
+                <p>{{ message.content }}</p>
+              </div>
             </div>
           </div>
         </section>
