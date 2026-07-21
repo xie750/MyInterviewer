@@ -30,8 +30,10 @@ async function logout() {
         <p class="eyebrow">AI 模拟面试</p>
         <h1>完成一次接近真实场景的岗位面试练习</h1>
         <p class="summary">
-          当前用户：{{ authStore.user?.displayName }}。系统会根据岗位、面试官风格和可选简历上下文生成多轮追问，
+          {{ authStore.user?.displayName }}。系统会根据岗位、面试官风格和可选简历上下文生成多轮追问，
           面试结束后给出评分、复盘建议和历史记录。
+          <span v-if="!flags.resume">（简历功能已关闭，可直接进入面试）</span>
+          <span v-if="!flags.speech">（语音功能已关闭，使用纯文字面试）</span>
         </p>
         <div class="hero-actions">
           <el-button type="primary" size="large" :icon="ArrowRight" @click="router.push('/positions')">
@@ -41,20 +43,20 @@ async function logout() {
         </div>
       </div>
 
-      <div class="intro-preview" aria-label="面试流程预览">
+      <div class="intro-preview glass-card glass-card-md" aria-label="面试流程预览">
         <div class="preview-toolbar">
           <span />
           <span />
           <span />
         </div>
-        <div class="preview-card active">
+        <div v-if="flags.resume" class="preview-card active">
           <el-icon><DocumentChecked /></el-icon>
           <div>
             <strong>上传简历</strong>
             <p>解析技能、项目和经历要点</p>
           </div>
         </div>
-        <div class="preview-card">
+        <div :class="['preview-card', { active: !flags.resume }]">
           <el-icon><UserFilled /></el-icon>
           <div>
             <strong>选择面试官</strong>

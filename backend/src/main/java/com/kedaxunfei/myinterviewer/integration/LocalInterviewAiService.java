@@ -2,15 +2,24 @@ package com.kedaxunfei.myinterviewer.integration;
 
 import java.util.List;
 
-import org.springframework.stereotype.Service;
-
+import com.kedaxunfei.myinterviewer.config.AppProperties;
 import com.kedaxunfei.myinterviewer.domain.InterviewMessage;
 import com.kedaxunfei.myinterviewer.domain.InterviewerStyle;
 import com.kedaxunfei.myinterviewer.domain.JobPosition;
 import com.kedaxunfei.myinterviewer.domain.MessageRole;
 
-@Service
 public class LocalInterviewAiService implements InterviewAiService {
+
+    private final AppProperties appProperties;
+
+    public LocalInterviewAiService(AppProperties appProperties) {
+        this.appProperties = appProperties;
+        if (!appProperties.feature().aiLocal()) {
+            throw new IllegalStateException(
+                    "AI 本地模式已关闭（FEATURE_AI_LOCAL=false），请在 .env 中配置真实 LLM 并设置 AI_PROVIDER"
+            );
+        }
+    }
 
     @Override
     public String generateOpeningQuestion(JobPosition position, InterviewerStyle style) {

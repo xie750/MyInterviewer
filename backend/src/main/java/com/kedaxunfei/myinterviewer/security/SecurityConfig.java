@@ -1,6 +1,8 @@
 package com.kedaxunfei.myinterviewer.security;
 
+import java.time.Duration;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -20,9 +22,17 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import com.kedaxunfei.myinterviewer.config.AppProperties;
+
 @Configuration
-@EnableConfigurationProperties(JwtProperties.class)
+@EnableConfigurationProperties({JwtProperties.class, AppProperties.class})
 public class SecurityConfig {
+
+    private final AppProperties appProperties;
+
+    public SecurityConfig(AppProperties appProperties) {
+        this.appProperties = appProperties;
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthenticationFilter)
@@ -43,19 +53,14 @@ public class SecurityConfig {
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
+        AppProperties.Cors cors = appProperties.cors();
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of(
-                "http://localhost:5173",
-                "http://localhost:5174",
-                "http://localhost:5175",
-                "http://127.0.0.1:5173",
-                "http://127.0.0.1:5174",
-                "http://127.0.0.1:5175"
-        ));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
-        configuration.setExposedHeaders(List.of("Authorization"));
-        configuration.setAllowCredentials(false);
+        configuration.setAllowedOrigins(parseOrigins(cors.allowedOrigins()));
+        configuration.setAllowedMethods(parseList(cors.allowedMethods(), List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")));
+        configuration.setAllowedHeaders(parseList(cors.allowedHeaders(), List.of("Authorization", "Content-Type", "Accept")));
+        configuration.setExposedHeaders(parseList(cors.exposedHeaders(), List.of("Authorization")));
+        configuration.setAllowCredentials(cors.allowCredentials());
+        configuration.setMaxAge(Duration.ofSeconds(cors.maxAge()));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", configuration);
         return source;
@@ -71,5 +76,22 @@ public class SecurityConfig {
         return username -> {
             throw new UsernameNotFoundException("JWT authentication does not use UserDetailsService");
         };
+    }
+
+    private List<String> parseOrigins(String value) {
+        if (value == null || value.isBlank()) {
+            return List.of("http://localhost:5173");
+        }
+        return parseList(value, List.of("http://localhost:5173"));
+    }
+
+    private List<String> parseList(String value, List<String> defaults) {
+        if (value == null || value.isBlank()) {
+            return defaults;
+        }
+        return java.util.Arrays.stream(value.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
     }
 }

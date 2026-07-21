@@ -1,18 +1,20 @@
 spring:
+  config:
+    import: optional:file:../.env
   application:
     name: my-interviewer-backend
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:my_interviewer}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:my_interviewer}?serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
     username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:}
+    password: ${DB_PASSWORD:xiedi20050420}
   servlet:
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
 
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
 
 mybatis-plus:
   configuration:
@@ -23,3 +25,35 @@ app:
     issuer: my-interviewer
     secret: ${JWT_SECRET:dev-secret-for-my-interviewer-change-in-prod-32}
     expiration-minutes: ${JWT_EXPIRATION_MINUTES:120}
+
+  # ---- Feature flags (true = 开启, false = 关闭/降级) ----
+  feature:
+    resume: ${FEATURE_RESUME:true}
+    ai-local: ${FEATURE_AI_LOCAL:true}
+    speech: ${FEATURE_SPEECH:true}
+    posture: ${FEATURE_POSTURE:true}
+    pdf-report: ${FEATURE_PDF_REPORT:false}
+
+  # ---- AI 服务配置 ----
+  ai:
+    provider: deepseek
+    api-base-url: https://api.deepseek.com/v1
+    api-key: sk-b995d3fa0b8a47bb96d0c6fde406f5fd
+    model: deepseek-chat
+    timeout-seconds: 30
+    max-retries: 2
+
+  # ---- 语音服务配置 ----
+  speech:
+    asr-lang: ${SPEECH_ASR_LANG:zh-CN}
+    tts-lang: ${SPEECH_TTS_LANG:zh-CN}
+    tts-rate: ${SPEECH_TTS_RATE:1.0}
+
+  # ---- CORS 配置 ----
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:5174,http://localhost:5175,http://127.0.0.1:5173,http://127.0.0.1:5174,http://127.0.0.1:5175}
+    allowed-methods: ${CORS_ALLOWED_METHODS:GET,POST,PUT,PATCH,DELETE,OPTIONS}
+    allowed-headers: ${CORS_ALLOWED_HEADERS:Authorization,Content-Type,Accept}
+    exposed-headers: ${CORS_EXPOSED_HEADERS:Authorization}
+    allow-credentials: ${CORS_ALLOW_CREDENTIALS:false}
+    max-age: ${CORS_MAX_AGE:3600}

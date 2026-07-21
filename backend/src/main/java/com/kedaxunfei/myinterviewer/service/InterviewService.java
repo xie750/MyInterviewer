@@ -2,6 +2,9 @@ package com.kedaxunfei.myinterviewer.service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +29,7 @@ import com.kedaxunfei.myinterviewer.dto.InterviewMessageResponse;
 import com.kedaxunfei.myinterviewer.dto.InterviewReportResponse;
 import com.kedaxunfei.myinterviewer.dto.InterviewSummaryResponse;
 import com.kedaxunfei.myinterviewer.dto.InterviewerStyleResponse;
+import com.kedaxunfei.myinterviewer.dto.PageResponse;
 import com.kedaxunfei.myinterviewer.dto.PositionResponse;
 import com.kedaxunfei.myinterviewer.dto.ResumeContextRequest;
 import com.kedaxunfei.myinterviewer.dto.ResumeContextResponse;
@@ -77,10 +81,21 @@ public class InterviewService {
         ResumeContext resume = toResumeContext(request.resume());
         LocalDateTime now = LocalDateTime.now();
 
+        List<InterviewSession> active = interviewSessionMapper.selectList(
+                new LambdaQueryWrapper<InterviewSession>()
+                        .eq(InterviewSession::getUserId, user.id())
+                        .eq(InterviewSession::getStatus, InterviewStatus.IN_PROGRESS)
+                        .last("limit 1"));
+        if (!active.isEmpty()) {
+            throw new BusinessException(ErrorCodes.BAD_REQUEST,
+                    "您已有一个进行中的面试，请先完成或结束当前面试后再创建新的");
+        }
+
         InterviewSession session = new InterviewSession();
         session.setUserId(user.id());
         session.setPositionId(position.getId());
         session.setStyleId(style.getId());
+        session.setResumeFileName(clean(request.resumeFileName()));
         applyResumeContext(session, resume);
         session.setStatus(InterviewStatus.IN_PROGRESS);
         session.setQuestionCount(1);
@@ -93,14 +108,38 @@ public class InterviewService {
         return buildDetail(session.getId());
     }
 
-    public List<InterviewSummaryResponse> listOwnInterviews(AuthenticatedUser user) {
-        return interviewSessionMapper.selectList(new LambdaQueryWrapper<InterviewSession>()
+    public PageResponse<InterviewSummaryResponse> listOwnInterviews(AuthenticatedUser user, int page, int pageSize) {
+        List<InterviewSession> sessions = interviewSessionMapper.selectList(new LambdaQueryWrapper<InterviewSession>()
                         .eq(InterviewSession::getUserId, user.id())
                         .orderByDesc(InterviewSession::getUpdatedAt)
                         .orderByDesc(InterviewSession::getId))
                 .stream()
-                .map(this::buildSummary)
                 .toList();
+
+        if (sessions.isEmpty()) {
+            return PageResponse.of(List.of(), page, pageSize);
+        }
+
+        Set<Long> positionIds = sessions.stream().map(InterviewSession::getPositionId).collect(Collectors.toSet());
+        Set<Long> styleIds = sessions.stream().map(InterviewSession::getStyleId).collect(Collectors.toSet());
+        Set<Long> userIds = sessions.stream().map(InterviewSession::getUserId).collect(Collectors.toSet());
+        Set<Long> sessionIds = sessions.stream().map(InterviewSession::getId).collect(Collectors.toSet());
+
+        Map<Long, JobPosition> positions = positionService.selectMapByIds(positionIds);
+        Map<Long, InterviewerStyle> styles = interviewerStyleService.selectMapByIds(styleIds);
+        Map<Long, SysUser> users = sysUserMapper.selectBatchIds(userIds).stream()
+                .collect(Collectors.toMap(SysUser::getId, u -> u));
+
+        Map<Long, InterviewReport> reports = sessionIds.isEmpty() ? Map.of()
+                : interviewReportMapper.selectList(new LambdaQueryWrapper<InterviewReport>()
+                        .in(InterviewReport::getSessionId, sessionIds))
+                .stream()
+                .collect(Collectors.toMap(InterviewReport::getSessionId, r -> r));
+
+        List<InterviewSummaryResponse> summaries = sessions.stream()
+                .map(session -> buildSummary(session, positions, styles, users, reports.get(session.getId())))
+                .toList();
+        return PageResponse.of(summaries, page, pageSize);
     }
 
     public InterviewDetailResponse getOwnInterview(AuthenticatedUser user, Long id) {
@@ -148,18 +187,44 @@ public class InterviewService {
         return buildDetail(session.getId());
     }
 
-    public InterviewReportResponse getOwnReport(AuthenticatedUser user, Long id) {
+    @Transactional
+    public void deleteInterview(AuthenticatedUser user, Long id) {
         InterviewSession session = requireOwnedSession(user, id);
-        InterviewReport report = requireReport(session.getId());
-        return InterviewReportResponse.from(report);
+        interviewMessageMapper.delete(new LambdaQueryWrapper<InterviewMessage>()
+                .eq(InterviewMessage::getSessionId, id));
+        interviewReportMapper.delete(new LambdaQueryWrapper<InterviewReport>()
+                .eq(InterviewReport::getSessionId, id));
+        interviewSessionMapper.deleteById(id);
     }
 
     public List<AdminInterviewResponse> listAllInterviews() {
-        return interviewSessionMapper.selectList(new LambdaQueryWrapper<InterviewSession>()
+        List<InterviewSession> sessions = interviewSessionMapper.selectList(new LambdaQueryWrapper<InterviewSession>()
                         .orderByDesc(InterviewSession::getUpdatedAt)
                         .orderByDesc(InterviewSession::getId))
                 .stream()
-                .map(this::buildAdminSummary)
+                .toList();
+
+        if (sessions.isEmpty()) {
+            return List.of();
+        }
+
+        Set<Long> positionIds = sessions.stream().map(InterviewSession::getPositionId).collect(Collectors.toSet());
+        Set<Long> styleIds = sessions.stream().map(InterviewSession::getStyleId).collect(Collectors.toSet());
+        Set<Long> userIds = sessions.stream().map(InterviewSession::getUserId).collect(Collectors.toSet());
+        Set<Long> sessionIds = sessions.stream().map(InterviewSession::getId).collect(Collectors.toSet());
+
+        Map<Long, JobPosition> positions = positionService.selectMapByIds(positionIds);
+        Map<Long, InterviewerStyle> styles = interviewerStyleService.selectMapByIds(styleIds);
+        Map<Long, SysUser> users = sysUserMapper.selectBatchIds(userIds).stream()
+                .collect(Collectors.toMap(SysUser::getId, u -> u));
+        Map<Long, InterviewReport> reports = sessionIds.isEmpty() ? Map.of()
+                : interviewReportMapper.selectList(new LambdaQueryWrapper<InterviewReport>()
+                        .in(InterviewReport::getSessionId, sessionIds))
+                .stream()
+                .collect(Collectors.toMap(InterviewReport::getSessionId, r -> r));
+
+        return sessions.stream()
+                .map(session -> buildAdminSummary(session, positions, styles, users, reports.get(session.getId())))
                 .toList();
     }
 
@@ -194,30 +259,41 @@ public class InterviewService {
         interviewReportMapper.insert(report);
     }
 
-    private InterviewSummaryResponse buildSummary(InterviewSession session) {
-        JobPosition position = positionService.requirePosition(session.getPositionId());
-        InterviewerStyle style = interviewerStyleService.requireStyle(session.getStyleId());
-        InterviewReport report = findReport(session.getId());
+    private InterviewSummaryResponse buildSummary(
+            InterviewSession session,
+            Map<Long, JobPosition> positions,
+            Map<Long, InterviewerStyle> styles,
+            Map<Long, SysUser> users,
+            InterviewReport report
+    ) {
+        JobPosition position = positions.get(session.getPositionId());
+        InterviewerStyle style = styles.get(session.getStyleId());
+        SysUser user = users.get(session.getUserId());
         return InterviewSummaryResponse.from(
                 session,
-                position.getName(),
-                style.getName(),
+                position == null ? "未知岗位" : position.getName(),
+                style == null ? "未知风格" : style.getName(),
+                user == null ? "未知用户" : user.getDisplayName(),
+                session.getResumeFileName(),
                 session.getResumeUsed(),
                 report == null ? null : report.getTotalScore()
         );
     }
 
-    private AdminInterviewResponse buildAdminSummary(InterviewSession session) {
-        SysUser user = sysUserMapper.selectById(session.getUserId());
-        JobPosition position = positionService.requirePosition(session.getPositionId());
-        InterviewerStyle style = interviewerStyleService.requireStyle(session.getStyleId());
-        InterviewReport report = findReport(session.getId());
+    private AdminInterviewResponse buildAdminSummary(
+            InterviewSession session,
+            Map<Long, JobPosition> positions,
+            Map<Long, InterviewerStyle> styles,
+            Map<Long, SysUser> users,
+            InterviewReport report
+    ) {
+        SysUser user = users.get(session.getUserId());
         return AdminInterviewResponse.from(
                 session,
                 user == null ? "未知用户" : user.getUsername(),
                 user == null ? "未知用户" : user.getDisplayName(),
-                position.getName(),
-                style.getName(),
+                positions.getOrDefault(session.getPositionId(), new JobPosition()).getName(),
+                styles.getOrDefault(session.getStyleId(), new InterviewerStyle()).getName(),
                 report == null ? null : report.getTotalScore()
         );
     }

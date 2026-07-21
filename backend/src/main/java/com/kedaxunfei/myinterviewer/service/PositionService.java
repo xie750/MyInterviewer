@@ -2,6 +2,9 @@ package com.kedaxunfei.myinterviewer.service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -96,6 +99,14 @@ public class PositionService {
             throw new BusinessException(ErrorCodes.NOT_FOUND, "岗位不存在");
         }
         return position;
+    }
+
+    Map<Long, JobPosition> selectMapByIds(Set<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Map.of();
+        }
+        return jobPositionMapper.selectBatchIds(ids).stream()
+                .collect(Collectors.toMap(JobPosition::getId, p -> p));
     }
 
     private void ensureNameAvailable(String name, Long currentId) {

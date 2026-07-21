@@ -1,20 +1,24 @@
 <script setup lang="ts">
 import {
   ArrowLeft,
+  Calendar,
   Camera,
   ChatLineRound,
   CircleCheck,
+  Document,
   Download,
   Finished,
   Headset,
   Microphone,
   MuteNotification,
+  OfficeBuilding,
+  User,
   UserFilled,
-  Warning,
   VideoCamera,
   VideoPause,
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import html2pdf from 'html2pdf.js'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -47,9 +51,12 @@ import {
   type SpeechRecognitionSession,
 } from '@/services/voice'
 import type { InterviewDetail, PostureEvent, PostureThreshold } from '@/types'
+import { useFeatureFlags } from '@/composables/useFeatureFlags'
 
+const flags = useFeatureFlags()
 const route = useRoute()
 const router = useRouter()
+
 const loading = ref(false)
 const sending = ref(false)
 const finishing = ref(false)
@@ -133,12 +140,12 @@ const reportMetrics = computed(() => {
     return []
   }
   return [
-    { label: '专业知识', value: report.technicalScore, strong: true },
-    { label: '技能匹配', value: Math.round((report.technicalScore + report.totalScore) / 2), strong: true },
-    { label: '语言表达', value: report.communicationScore, strong: true },
-    { label: '逻辑思维', value: report.logicScore, strong: true },
-    { label: '创新能力', value: Math.max(45, report.totalScore - 10), strong: false },
-    { label: '应变抗压', value: Math.max(45, Math.round((report.logicScore + report.communicationScore) / 2) - 8), strong: false },
+    { label: '专业知识', value: report.technicalScore },
+    { label: '技能匹配', value: Math.round((report.technicalScore + report.totalScore) / 2) },
+    { label: '语言表达', value: report.communicationScore },
+    { label: '逻辑思维', value: report.logicScore },
+    { label: '创新能力', value: Math.max(45, report.totalScore - 10) },
+    { label: '应变抗压', value: Math.max(45, Math.round((report.logicScore + report.communicationScore) / 2) - 8) },
   ]
 })
 const radarPoints = computed(() => {
@@ -218,6 +225,39 @@ async function finishInterview() {
     ElMessage.error('结束面试失败')
   } finally {
     finishing.value = false
+  }
+}
+
+async function handleDownloadPdf() {
+  if (!interview.value) {
+    return
+  }
+  try {
+    const reportEl = document.querySelector('.report-shell') as HTMLElement | null
+    if (!reportEl) {
+      ElMessage.warning('报告内容未准备好，请稍后再试')
+      return
+    }
+
+    const positionName = interview.value.position.name
+    const fileName = `面试报告_${positionName}_${new Date().toISOString().slice(0, 10)}.pdf`
+
+    await html2pdf().set({
+      margin: 12,
+      filename: fileName,
+      image: { type: 'jpeg', quality: 0.95 },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+      },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    }).from(reportEl).save()
+
+    ElMessage.success('PDF报告下载成功')
+  } catch {
+    ElMessage.error('PDF生成失败，请重试')
   }
 }
 
@@ -469,7 +509,11 @@ watch(
 )
 
 onMounted(async () => {
-  await Promise.all([loadInterview(), loadPostureThresholds()])
+  await loadInterview()
+  // 姿态阈值是非关键配置，后台静默加载，不阻塞面试主界面
+  loadPostureThresholds().catch(() => {
+    postureStatus.value = '姿态阈值配置读取失败，已使用本地默认配置'
+  })
 })
 onBeforeUnmount(() => {
   stopRecognition()
@@ -481,53 +525,66 @@ onBeforeUnmount(() => {
 <template>
   <main v-loading="loading" :class="isCompleted ? 'flow-page report-page' : 'interview-room-page'">
     <template v-if="interview && isCompleted">
-      <header class="flow-topbar">
+      <header class="report-topbar">
         <button class="back-button" type="button" @click="router.push(readonlyAdminView ? '/admin' : '/interviews')">
-          <el-icon><ArrowLeft /></el-icon>
-          返回
+          ‹ 返回
         </button>
-        <el-button :icon="Download" type="primary">下载 PDF 报告</el-button>
+        <el-button v-if="flags.pdfReport" :icon="Download" type="primary" class="pdf-btn" @click="handleDownloadPdf">
+          下载 PDF 报告
+        </el-button>
       </header>
 
       <section class="report-shell">
         <div class="report-heading">
           <h1>面试评估报告</h1>
           <p>
-            {{ formatTime(interview.endedAt || interview.updatedAt) }}
-            <span>{{ interview.position.name }}</span>
-            <span>{{ virtualHuman.name }}</span>
+            <span><el-icon><Calendar /></el-icon> {{ formatTime(interview.endedAt || interview.updatedAt) }}</span>
+            <span><el-icon><OfficeBuilding /></el-icon> {{ interview.position.name }}</span>
+            <span><el-icon><User /></el-icon> {{ virtualHuman.name }}</span>
           </p>
         </div>
 
         <section v-if="interview.report" class="score-hero">
           <div class="score-ring" :style="scoreRingStyle">
-            <strong>{{ interview.report.totalScore }}</strong>
-            <span>/ 100</span>
+            <span class="score-value">{{ interview.report.totalScore }}</span>
+            <span class="score-divider">/</span>
+            <span class="score-max">100</span>
           </div>
           <h2>综合评分</h2>
           <p>候选人完成了 {{ answeredCount }} 轮面试问答，共回答了 {{ interview.questionCount }} 个问题。</p>
         </section>
 
         <section v-if="interview.report" class="report-grid">
-          <article class="report-card">
+          <article class="report-card radar-card">
             <h2>能力雷达图</h2>
             <div class="radar-chart">
               <span class="radar-grid r1" />
               <span class="radar-grid r2" />
               <span class="radar-grid r3" />
               <span class="radar-fill" :style="{ clipPath: `polygon(${radarPoints})` }" />
+              <div class="radar-labels">
+                <span class="radar-lbl top">专业知识</span>
+                <span class="radar-lbl top-right">
+                  技能匹配
+                  <span class="radar-tooltip">60 分</span>
+                </span>
+                <span class="radar-lbl right">语言表达</span>
+                <span class="radar-lbl bottom-right">逻辑思维</span>
+                <span class="radar-lbl bottom">创新能力</span>
+                <span class="radar-lbl bottom-left">应变抗压</span>
+              </div>
             </div>
           </article>
 
-          <article class="report-card">
+          <article class="report-card metrics-card">
             <h2>各项指标</h2>
             <div class="metric-list">
               <div v-for="metric in reportMetrics" :key="metric.label" class="metric-item">
-                <span>{{ metric.label }}</span>
+                <span class="metric-label">{{ metric.label }}</span>
                 <div class="metric-track">
-                  <i :class="{ weak: !metric.strong }" :style="{ width: `${metric.value}%` }" />
+                  <i :class="{ pass: metric.value >= 60, fail: metric.value < 60 }" :style="{ width: `${metric.value}%` }" />
                 </div>
-                <strong :class="{ weak: !metric.strong }">{{ metric.value }}</strong>
+                <strong :class="metric.value >= 60 ? 'pass' : 'fail'">{{ metric.value }}</strong>
               </div>
             </div>
           </article>
@@ -535,11 +592,11 @@ onBeforeUnmount(() => {
 
         <section v-if="interview.report" class="insight-grid">
           <article class="insight-card success">
-            <h2>亮点</h2>
+            <h2><span class="insight-icon star-icon">✦</span> 亮点</h2>
             <p>{{ interview.report.strengths }}</p>
           </article>
           <article class="insight-card warning">
-            <h2>建议</h2>
+            <h2><span class="insight-icon chat-icon">💬</span> 建议</h2>
             <p>{{ interview.report.recommendation || interview.report.improvements }}</p>
           </article>
         </section>
@@ -547,19 +604,15 @@ onBeforeUnmount(() => {
         <section class="dialogue-card">
           <div class="section-toolbar">
             <div>
-              <h2>面试对话记录</h2>
+              <h2><el-icon><Document /></el-icon> 面试对话记录</h2>
               <p>共 {{ interview.messages.length }} 条消息，候选人回答了 {{ answeredCount }} 个问题。</p>
             </div>
           </div>
           <div class="dialogue-list">
-            <article
-              v-for="message in interview.messages"
-              :key="message.id"
-              :class="['dialogue-bubble', message.role === 'USER' ? 'candidate' : 'interviewer']"
-            >
-              <span>{{ message.role === 'USER' ? '候选人' : '面试官' }}</span>
+            <div v-for="message in interview.messages" :key="message.id" class="dialogue-row" :class="message.role">
+              <span class="role-label">{{ message.role === 'USER' ? '候选人' : '面试官' }}</span>
               <p>{{ message.content }}</p>
-            </article>
+            </div>
           </div>
         </section>
       </section>
@@ -635,67 +688,73 @@ onBeforeUnmount(() => {
             {{ latestAiMessage.content }}
           </div>
 
-          <div class="voice-strip">
-            <el-icon><Headset /></el-icon>
-            <span>{{ voiceError || voiceStatusText }}</span>
-          </div>
+          <!-- 语音模块（FEATURE_SPEECH） -->
+          <template v-if="flags.speech">
+            <div class="voice-strip">
+              <el-icon><Headset /></el-icon>
+              <span>{{ voiceError || voiceStatusText }}</span>
+            </div>
 
-          <div v-if="interimSpeechText" class="speech-preview" aria-live="polite">
-            <el-icon><MuteNotification /></el-icon>
-            <span>{{ interimSpeechText }}</span>
-          </div>
+            <div v-if="interimSpeechText" class="speech-preview" aria-live="polite">
+              <el-icon><MuteNotification /></el-icon>
+              <span>{{ interimSpeechText }}</span>
+            </div>
 
-          <div v-if="canAnswer" class="room-actions">
-            <el-button
-              v-if="!recognizing"
-              :icon="Microphone"
-              :disabled="!speechRecognitionSupported || sending || finishing"
-              @click="startRecognition"
-            >
-              开始听写
-            </el-button>
-            <el-button v-else :icon="VideoPause" type="success" @click="stopRecognition">
-              停止听写
-            </el-button>
-            <el-button
-              :icon="Headset"
-              :loading="speaking"
-              :disabled="!speechSynthesisSupported || !latestAiMessage"
-              @click="speakLatestQuestion()"
-            >
-              播报问题
-            </el-button>
-            <el-switch
-              v-model="autoSpeak"
-              :disabled="!speechSynthesisSupported"
-              inline-prompt
-              active-text="自动"
-              inactive-text="手动"
-            />
-          </div>
+            <div v-if="canAnswer" class="room-actions">
+              <el-button
+                v-if="!recognizing"
+                :icon="Microphone"
+                :disabled="!speechRecognitionSupported || sending || finishing"
+                @click="startRecognition"
+              >
+                开始听写
+              </el-button>
+              <el-button v-else :icon="VideoPause" type="success" @click="stopRecognition">
+                停止听写
+              </el-button>
+              <el-button
+                :icon="Headset"
+                :loading="speaking"
+                :disabled="!speechSynthesisSupported || !latestAiMessage"
+                @click="speakLatestQuestion()"
+              >
+                播报问题
+              </el-button>
+              <el-switch
+                v-model="autoSpeak"
+                :disabled="!speechSynthesisSupported"
+                inline-prompt
+                active-text="自动"
+                inactive-text="手动"
+              />
+            </div>
+          </template>
 
-          <div v-if="canAnswer" class="posture-actions">
-            <el-button
-              v-if="!postureActive"
-              :icon="VideoCamera"
-              :loading="postureStarting"
-              :disabled="postureStarting"
-              @click="startPostureMonitor"
-            >
-              开启摄像头检测
-            </el-button>
-            <el-button v-else :icon="VideoPause" type="warning" plain @click="stopPostureMonitor">
-              关闭摄像头检测
-            </el-button>
-          </div>
+          <!-- 姿态检测模块（FEATURE_POSTURE） -->
+          <template v-if="flags.posture">
+            <div v-if="canAnswer" class="posture-actions">
+              <el-button
+                v-if="!postureActive"
+                :icon="VideoCamera"
+                :loading="postureStarting"
+                :disabled="postureStarting"
+                @click="startPostureMonitor"
+              >
+                开启摄像头检测
+              </el-button>
+              <el-button v-else :icon="VideoPause" type="warning" plain @click="stopPostureMonitor">
+                关闭摄像头检测
+              </el-button>
+            </div>
 
-          <div class="posture-status" :class="{ warning: Boolean(postureError) }">
-            <el-icon>
-              <Warning v-if="postureError" />
-              <CircleCheck v-else />
-            </el-icon>
-            <span>{{ postureError || postureStatus }}，{{ postureWarningCount }} 条需关注</span>
-          </div>
+            <div class="posture-status" :class="{ warning: Boolean(postureError) }">
+              <el-icon>
+                <Warning v-if="postureError" />
+                <CircleCheck v-else />
+              </el-icon>
+              <span>{{ postureError || postureStatus }}，{{ postureWarningCount }} 条需关注</span>
+            </div>
+          </template>
 
           <el-input
             v-if="canAnswer"

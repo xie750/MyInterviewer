@@ -18,7 +18,11 @@ import com.kedaxunfei.myinterviewer.repository.PostureThresholdConfigMapper;
 @Service
 public class PostureThresholdService {
 
+    private static final long CACHE_TTL_MS = 5 * 60 * 1000;
+
     private final PostureThresholdConfigMapper postureThresholdConfigMapper;
+    private volatile long lastCacheTime = 0;
+    private volatile List<PostureThresholdResponse> cachedEnabled;
 
     public PostureThresholdService(PostureThresholdConfigMapper postureThresholdConfigMapper) {
         this.postureThresholdConfigMapper = postureThresholdConfigMapper;
@@ -31,11 +35,19 @@ public class PostureThresholdService {
     }
 
     public List<PostureThresholdResponse> listEnabled() {
-        return postureThresholdConfigMapper.selectList(baseOrder()
+        long now = System.currentTimeMillis();
+        List<PostureThresholdResponse> cached = cachedEnabled;
+        if (cached != null && (now - lastCacheTime) < CACHE_TTL_MS) {
+            return cached;
+        }
+        List<PostureThresholdResponse> result = postureThresholdConfigMapper.selectList(baseOrder()
                         .eq(PostureThresholdConfig::getEnabled, true))
                 .stream()
                 .map(PostureThresholdResponse::from)
                 .toList();
+        lastCacheTime = now;
+        cachedEnabled = result;
+        return result;
     }
 
     @Transactional
@@ -45,7 +57,13 @@ public class PostureThresholdService {
         fill(config, request);
         config.setUpdatedAt(LocalDateTime.now());
         postureThresholdConfigMapper.updateById(config);
+        invalidateCache();
         return PostureThresholdResponse.from(requireConfig(id));
+    }
+
+    private void invalidateCache() {
+        lastCacheTime = 0;
+        cachedEnabled = null;
     }
 
     private LambdaQueryWrapper<PostureThresholdConfig> baseOrder() {

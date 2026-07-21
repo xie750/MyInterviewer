@@ -1,3 +1,19 @@
+/**
+ * 语音服务：语音识别 + 语音合成
+ *
+ * Feature Flag：VITE_FEATURE_SPEECH
+ *  - true  （默认）：正常加载语音能力
+ *  - false       ：所有函数返回"不支持"，不创建 SpeechRecognition
+ *
+ * 依赖浏览器原生 Web Speech API，仅 Chrome/Edge 支持语音识别，
+ * Firefox/Safari 将自动降级为只显示文字。
+ */
+
+import { featureFlags } from '@/config/featureConfig'
+
+// ---- Feature Gate ----
+const SPEECH_ENABLED = featureFlags.speech
+
 type SpeechRecognitionConstructor = new () => SpeechRecognitionLike
 
 interface SpeechRecognitionAlternativeLike {
@@ -69,16 +85,22 @@ export interface SpeechRecognitionOptions {
 }
 
 export function isSpeechRecognitionSupported() {
+  if (!SPEECH_ENABLED) return false
   return typeof window !== 'undefined' && Boolean(window.SpeechRecognition || window.webkitSpeechRecognition)
 }
 
 export function isSpeechSynthesisSupported() {
+  if (!SPEECH_ENABLED) return false
   return typeof window !== 'undefined' && 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window
 }
 
 export function createSpeechRecognitionSession(
   options: SpeechRecognitionOptions,
 ): SpeechRecognitionSession | null {
+  if (!SPEECH_ENABLED) {
+    return null
+  }
+
   const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition
   if (!Recognition) {
     return null
@@ -139,12 +161,16 @@ export function createSpeechRecognitionSession(
 }
 
 export function cancelSpeech() {
+  if (!SPEECH_ENABLED) return
   if (isSpeechSynthesisSupported()) {
     window.speechSynthesis.cancel()
   }
 }
 
 export function speakText(text: string, lang = 'zh-CN') {
+  if (!SPEECH_ENABLED) {
+    return Promise.reject(new Error('语音功能未开启'))
+  }
   if (!isSpeechSynthesisSupported()) {
     return Promise.reject(new Error('当前浏览器不支持语音播报'))
   }

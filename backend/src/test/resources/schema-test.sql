@@ -53,6 +53,7 @@ CREATE TABLE interview_session (
     position_id BIGINT NOT NULL,
     style_id BIGINT NOT NULL,
     resume_used BOOLEAN NOT NULL DEFAULT FALSE,
+    resume_file_name VARCHAR(255),
     resume_summary VARCHAR(1000),
     resume_skills VARCHAR(1000),
     resume_projects VARCHAR(1000),

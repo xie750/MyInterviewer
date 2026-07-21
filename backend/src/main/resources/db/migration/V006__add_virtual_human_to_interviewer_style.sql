@@ -26,3 +26,15 @@ SET virtual_human_key = 'hr-partner',
     virtual_human_name = '综合评估官',
     virtual_human_description = '关注表达、协作、复盘和长期匹配度。'
 WHERE name = 'HR 综合面';
+
+UPDATE interviewer_style
+SET virtual_human_key = 'challenge-master',
+    virtual_human_name = '挑战面试官',
+    virtual_human_description = '通过复杂场景和突发问题检验应变能力。'
+WHERE name = '挑战面试官';
+
+UPDATE interviewer_style
+SET virtual_human_key = 'practice-coach',
+    virtual_human_name = '实战演练官',
+    virtual_human_description = '结合实际项目案例评估实战能力。'
+WHERE name = '实战演练官';

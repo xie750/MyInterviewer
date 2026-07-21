@@ -1,3 +1,10 @@
+/**
+ * 虚拟人服务：面试官形象展示与状态切换
+ *
+ * Feature Flag：VITE_FEATURE_VIRTUAL_HUMAN（暂时默认开启，暂无独立开关）
+ * 当前为静态 SVG + CSS 类切换，口型同步和动画尚未实现。
+ */
+
 import defaultInterviewerAvatar from '@/assets/virtual-humans/default-interviewer.svg'
 import hrPartnerAvatar from '@/assets/virtual-humans/hr-partner.svg'
 import sternPanelAvatar from '@/assets/virtual-humans/stern-panel.svg'

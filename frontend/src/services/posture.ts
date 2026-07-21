@@ -1,3 +1,19 @@
+/**
+ * 姿态检测服务：浏览器本地摄像头检测
+ *
+ * Feature Flag：VITE_FEATURE_POSTURE
+ *  - true  （默认）：正常加载姿态检测
+ *  - false       ：所有检测函数直接返回，不启动摄像头
+ *
+ * 依赖浏览器 FaceDetector API（仅 Chrome 支持），
+ * 不可用时会自动降级为亮度 + 画面变化检测。
+ */
+
+import { featureFlags } from '@/config/featureConfig'
+
+// ---- Feature Gate ----
+const POSTURE_ENABLED = featureFlags.posture
+
 import type { PostureEventRequest, PostureEventType, PostureSeverity, PostureThreshold } from '@/types'
 
 interface FaceDetectorBox {
@@ -64,6 +80,7 @@ const DEFAULT_THRESHOLDS: PostureRuntimeThresholds = {
 }
 
 export function isCameraSupported() {
+  if (!POSTURE_ENABLED) return false
   return typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia)
 }
 
@@ -71,6 +88,9 @@ export function createPostureEventRequest(
   interviewId: number,
   event: LocalPostureEvent,
 ): PostureEventRequest {
+  if (!POSTURE_ENABLED) {
+    throw new Error('姿态检测功能未开启')
+  }
   return {
     interviewId,
     eventType: event.eventType,
@@ -85,6 +105,22 @@ export function createPostureMonitor(
   callbacks: PostureMonitorCallbacks,
   thresholdConfigs: PostureThreshold[] = [],
 ): PostureMonitor {
+  if (!POSTURE_ENABLED) {
+    return {
+      async start() {
+        callbacks.onError({
+          eventType: 'CAMERA_UNAVAILABLE',
+          severity: 'WARNING',
+          score: 100,
+          detail: '姿态检测功能当前未开启',
+        })
+      },
+      stop() {
+        // no-op
+      },
+    }
+  }
+
   const thresholds = resolveRuntimeThresholds(thresholdConfigs)
   let stream: MediaStream | null = null
   let timerId: number | null = null

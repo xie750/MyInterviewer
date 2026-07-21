@@ -1,6 +1,9 @@
 package com.kedaxunfei.myinterviewer.service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
@@ -42,6 +45,14 @@ public class InterviewerStyleService {
             throw new BusinessException(ErrorCodes.NOT_FOUND, "面试官风格不存在");
         }
         return style;
+    }
+
+    Map<Long, InterviewerStyle> selectMapByIds(Set<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Map.of();
+        }
+        return interviewerStyleMapper.selectBatchIds(ids).stream()
+                .collect(Collectors.toMap(InterviewerStyle::getId, s -> s));
     }
 
     private LambdaQueryWrapper<InterviewerStyle> baseOrder() {

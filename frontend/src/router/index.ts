@@ -7,7 +7,7 @@ export const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/home',
+      redirect: '/interviews',
     },
     {
       path: '/login',
@@ -18,14 +18,14 @@ export const router = createRouter({
       },
     },
     {
-      path: '/home',
-      name: 'home',
-      component: () => import('@/views/HomeView.vue'),
+      path: '/interviews/resume',
+      name: 'resume-upload',
+      component: () => import('@/views/ResumeUploadView.vue'),
     },
     {
-      path: '/positions',
-      name: 'positions',
-      component: () => import('@/views/PositionsView.vue'),
+      path: '/interviews/select',
+      name: 'position-select',
+      component: () => import('@/views/PositionSelectView.vue'),
     },
     {
       path: '/interviews',
@@ -76,7 +76,7 @@ router.beforeEach(async (to) => {
         return true
       }
     }
-    return '/home'
+    return '/interviews'
   }
 
   if (!authStore.isAuthenticated) {

@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 public record CreateInterviewRequest(
         @NotNull Long positionId,
         @NotNull Long styleId,
+        String resumeFileName,
         @Valid ResumeContextRequest resume
 ) {
 }

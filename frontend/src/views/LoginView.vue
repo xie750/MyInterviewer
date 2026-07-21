@@ -19,7 +19,7 @@ async function submitLogin() {
   loading.value = true
   try {
     await authStore.login(form)
-    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/home'
+    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/interviews'
     await router.replace(redirect)
   } catch {
     ElMessage.error('用户名或密码错误')

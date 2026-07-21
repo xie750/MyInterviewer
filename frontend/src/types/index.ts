@@ -12,6 +12,15 @@ export type PostureEventType =
   | 'CAMERA_UNAVAILABLE'
 export type PostureSeverity = 'INFO' | 'WARNING' | 'CRITICAL'
 
+// ---- Feature Flags（与后端配置对应） ----
+export interface FeatureFlags {
+  resume: boolean
+  aiLocal: boolean
+  speech: boolean
+  posture: boolean
+  pdfReport: boolean
+}
+
 export interface ApiResponse<T> {
   code: number
   message: string
@@ -92,6 +101,7 @@ export interface InterviewerStyle {
 export interface CreateInterviewRequest {
   positionId: number
   styleId: number
+  resumeFileName?: string
   resume?: ResumeContextRequest
 }
 
@@ -242,6 +252,8 @@ export interface InterviewSummary {
   questionCount: number
   positionName: string
   styleName: string
+  displayName: string
+  resumeFileName: string | null
   resumeUsed: boolean
   totalScore: number | null
   startedAt: string

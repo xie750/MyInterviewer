@@ -15,6 +15,7 @@ public class InterviewSession {
     private Long positionId;
     private Long styleId;
     private Boolean resumeUsed;
+    private String resumeFileName;
     private String resumeSummary;
     private String resumeSkills;
     private String resumeProjects;
@@ -64,6 +65,14 @@ public class InterviewSession {
 
     public void setResumeUsed(Boolean resumeUsed) {
         this.resumeUsed = resumeUsed;
+    }
+
+    public String getResumeFileName() {
+        return resumeFileName;
+    }
+
+    public void setResumeFileName(String resumeFileName) {
+        this.resumeFileName = resumeFileName;
     }
 
     public String getResumeSummary() {

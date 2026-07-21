@@ -7,12 +7,15 @@ import type {
   CreateInterviewRequest,
   InterviewDetail,
   InterviewSummary,
+  PageResponse,
   PostureEvent,
   PostureEventRequest,
 } from '@/types'
 
-export async function fetchInterviewsApi(): Promise<InterviewSummary[]> {
-  const response = await http.get<ApiResponse<InterviewSummary[]>>('/interviews')
+export async function fetchInterviewsApi(page = 1, pageSize = 6): Promise<PageResponse<InterviewSummary>> {
+  const response = await http.get<ApiResponse<PageResponse<InterviewSummary>>>('/interviews', {
+    params: { page, pageSize },
+  })
   return response.data.data
 }
 
@@ -46,12 +49,11 @@ export async function fetchAdminInterviewApi(id: number): Promise<InterviewDetai
   return response.data.data
 }
 
-export async function reportPostureEventApi(payload: PostureEventRequest): Promise<PostureEvent> {
-  const response = await http.post<ApiResponse<PostureEvent>>('/posture-events', payload)
-  return response.data.data
+export async function deleteInterviewApi(id: number): Promise<void> {
+  await http.delete(`/interviews/${id}`)
 }
 
-export async function fetchPostureEventsApi(id: number): Promise<PostureEvent[]> {
-  const response = await http.get<ApiResponse<PostureEvent[]>>(`/interviews/${id}/posture-events`)
+export async function reportPostureEventApi(payload: PostureEventRequest): Promise<PostureEvent> {
+  const response = await http.post<ApiResponse<PostureEvent>>('/posture-events', payload)
   return response.data.data
 }

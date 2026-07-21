@@ -514,7 +514,7 @@ onMounted(loadAll)
         <el-button :icon="Refresh" :loading="loading || usersLoading || interviewsLoading || postureLoading || thresholdsLoading || assetsLoading" @click="loadAll">
           刷新全部
         </el-button>
-        <el-button :icon="SwitchButton" plain @click="router.push('/home')">返回首页</el-button>
+        <el-button :icon="SwitchButton" plain @click="router.push('/interviews')">返回面试记录</el-button>
       </div>
     </section>
 

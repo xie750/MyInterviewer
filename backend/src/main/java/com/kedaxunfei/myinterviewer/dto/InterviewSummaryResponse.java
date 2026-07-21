@@ -11,6 +11,8 @@ public record InterviewSummaryResponse(
         Integer questionCount,
         String positionName,
         String styleName,
+        String displayName,
+        String resumeFileName,
         Boolean resumeUsed,
         Integer totalScore,
         LocalDateTime startedAt,
@@ -22,6 +24,8 @@ public record InterviewSummaryResponse(
             InterviewSession session,
             String positionName,
             String styleName,
+            String displayName,
+            String resumeFileName,
             Boolean resumeUsed,
             Integer totalScore
     ) {
@@ -31,6 +35,8 @@ public record InterviewSummaryResponse(
                 session.getQuestionCount(),
                 positionName,
                 styleName,
+                displayName,
+                resumeFileName,
                 Boolean.TRUE.equals(resumeUsed),
                 totalScore,
                 session.getStartedAt(),
