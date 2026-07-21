@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ArrowRight, Clock, DocumentChecked, SwitchButton, UserFilled } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
@@ -13,24 +14,60 @@ async function logout() {
 </script>
 
 <template>
-  <main class="home-page">
-    <section class="home-panel">
-      <p class="eyebrow">v0.1 MVP</p>
-      <h1>AI 模拟面试</h1>
-      <p class="summary">
-        当前用户：{{ authStore.user?.displayName }}（{{ authStore.user?.role }}）。你可以开始一次文字模拟面试，或查看自己的历史报告。
-      </p>
-      <div class="action-row">
-        <el-button type="primary" @click="router.push('/positions')">
-          开始面试
+  <main class="flow-page">
+    <header class="flow-topbar">
+      <div class="brand-mark">AI</div>
+      <div class="flow-topbar-actions">
+        <el-button v-if="authStore.user?.role === 'ADMIN'" plain @click="router.push('/admin')">
+          管理员后台
         </el-button>
-        <el-button type="primary" plain @click="router.push('/interviews')">
-          历史记录
-        </el-button>
-        <el-button v-if="authStore.user?.role === 'ADMIN'" type="primary" @click="router.push('/admin')">
-          管理员入口
-        </el-button>
-        <el-button type="primary" plain @click="logout">退出登录</el-button>
+        <el-button :icon="SwitchButton" plain @click="logout">退出登录</el-button>
+      </div>
+    </header>
+
+    <section class="intro-shell">
+      <div class="intro-copy">
+        <p class="eyebrow">AI 模拟面试</p>
+        <h1>完成一次接近真实场景的岗位面试练习</h1>
+        <p class="summary">
+          当前用户：{{ authStore.user?.displayName }}。系统会根据岗位、面试官风格和可选简历上下文生成多轮追问，
+          面试结束后给出评分、复盘建议和历史记录。
+        </p>
+        <div class="hero-actions">
+          <el-button type="primary" size="large" :icon="ArrowRight" @click="router.push('/positions')">
+            开始面试
+          </el-button>
+          <el-button size="large" plain @click="router.push('/interviews')">查看面试记录</el-button>
+        </div>
+      </div>
+
+      <div class="intro-preview" aria-label="面试流程预览">
+        <div class="preview-toolbar">
+          <span />
+          <span />
+          <span />
+        </div>
+        <div class="preview-card active">
+          <el-icon><DocumentChecked /></el-icon>
+          <div>
+            <strong>上传简历</strong>
+            <p>解析技能、项目和经历要点</p>
+          </div>
+        </div>
+        <div class="preview-card">
+          <el-icon><UserFilled /></el-icon>
+          <div>
+            <strong>选择面试官</strong>
+            <p>轻松、技术、HR 等风格可选</p>
+          </div>
+        </div>
+        <div class="preview-card">
+          <el-icon><Clock /></el-icon>
+          <div>
+            <strong>生成评估报告</strong>
+            <p>分数、亮点、建议和对话复盘</p>
+          </div>
+        </div>
       </div>
     </section>
   </main>

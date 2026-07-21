@@ -34,7 +34,7 @@ async function submitLogin() {
     <section class="auth-panel">
       <p class="eyebrow">MyInterviewer</p>
       <h1>登录</h1>
-      <p class="summary">第一阶段已接入后端登录接口，当前仅提供最小联调页面。</p>
+      <p class="summary">使用演示账号进入 AI 模拟面试系统，继续完成岗位选择、面试和评估报告流程。</p>
 
       <el-form class="login-form" label-position="top" @submit.prevent="submitLogin">
         <el-form-item label="账号">
@@ -50,4 +50,3 @@ async function submitLogin() {
     </section>
   </main>
 </template>
-

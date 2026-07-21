@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { Refresh, SwitchButton, View } from '@element-plus/icons-vue'
+import { ArrowLeft, Calendar, DocumentAdd, Refresh, View } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { fetchInterviewsApi } from '@/api/interviews'
@@ -10,6 +10,7 @@ import type { InterviewSummary } from '@/types'
 const router = useRouter()
 const loading = ref(false)
 const interviews = ref<InterviewSummary[]>([])
+const completedCount = computed(() => interviews.value.filter((item) => item.status === 'COMPLETED').length)
 
 async function loadInterviews() {
   loading.value = true
@@ -23,61 +24,81 @@ async function loadInterviews() {
 }
 
 function formatTime(value: string | null) {
-  return value ? new Date(value).toLocaleString() : '-'
+  return value ? new Date(value).toLocaleDateString() : '-'
+}
+
+function statusText(status: InterviewSummary['status']) {
+  return status === 'COMPLETED' ? '已完成' : '进行中'
+}
+
+function statusTagType(status: InterviewSummary['status']) {
+  return status === 'COMPLETED' ? 'success' : 'warning'
 }
 
 onMounted(loadInterviews)
 </script>
 
 <template>
-  <main class="workspace-page">
-    <section class="workspace-header">
-      <div>
-        <p class="eyebrow">History</p>
-        <h1>我的面试记录</h1>
-        <p class="summary">查看已完成报告，或回到进行中的文字面试。</p>
-      </div>
-      <div class="action-row compact">
-        <el-button type="primary" @click="router.push('/positions')">开始新面试</el-button>
-        <el-button :icon="Refresh" :loading="loading" @click="loadInterviews">刷新</el-button>
-        <el-button :icon="SwitchButton" plain @click="router.push('/home')">返回首页</el-button>
-      </div>
-    </section>
+  <main class="flow-page">
+    <header class="flow-topbar">
+      <button class="back-button" type="button" @click="router.push('/home')">
+        <el-icon><ArrowLeft /></el-icon>
+        返回
+      </button>
+      <el-button type="primary" @click="router.push('/positions')">开始新面试</el-button>
+    </header>
 
-    <section class="admin-section">
-      <el-table v-loading="loading" :data="interviews" border class="admin-table">
-        <el-table-column prop="positionName" label="岗位" min-width="160" />
-        <el-table-column prop="styleName" label="风格" min-width="130" />
-        <el-table-column label="简历" width="90">
-          <template #default="{ row }">
-            <el-tag :type="row.resumeUsed ? 'success' : 'info'">
-              {{ row.resumeUsed ? '已用' : '未用' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="状态" width="110">
-          <template #default="{ row }">
-            <el-tag :type="row.status === 'COMPLETED' ? 'success' : 'warning'">
-              {{ row.status === 'COMPLETED' ? '已完成' : '进行中' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="questionCount" label="问题数" width="90" />
-        <el-table-column label="总分" width="90">
-          <template #default="{ row }">{{ row.totalScore ?? '-' }}</template>
-        </el-table-column>
-        <el-table-column label="更新时间" min-width="180">
-          <template #default="{ row }">{{ formatTime(row.updatedAt) }}</template>
-        </el-table-column>
-        <el-table-column label="操作" width="120" fixed="right">
-          <template #default="{ row }">
-            <el-button :icon="View" link type="primary" @click="router.push(`/interviews/${row.id}`)">
-              查看
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-      <el-empty v-if="!loading && interviews.length === 0" description="暂无面试记录" />
+    <section class="history-shell" v-loading="loading">
+      <div class="flow-title history-title">
+        <h1>面试记录</h1>
+        <p>共 {{ interviews.length }} 场面试，{{ completedCount }} 场已生成评估报告。</p>
+      </div>
+
+      <div v-if="interviews.length" class="history-list">
+        <article v-for="item in interviews" :key="item.id" class="history-item">
+          <div class="history-main">
+            <span class="record-index">#{{ item.id }}</span>
+            <div>
+              <h2>{{ item.positionName }}</h2>
+              <p>
+                <el-icon><Calendar /></el-icon>
+                {{ formatTime(item.updatedAt) }}
+                <span>{{ item.styleName }}</span>
+                <span>{{ item.resumeUsed ? '已使用简历' : '未使用简历' }}</span>
+              </p>
+            </div>
+          </div>
+
+          <div class="history-score">
+            <strong>{{ item.totalScore ?? '--' }}</strong>
+            <span>综合评分</span>
+          </div>
+
+          <el-tag :type="statusTagType(item.status)" round>{{ statusText(item.status) }}</el-tag>
+
+          <el-button :icon="View" type="primary" plain @click="router.push(`/interviews/${item.id}`)">
+            查看详情
+          </el-button>
+        </article>
+      </div>
+
+      <section v-else-if="!loading" class="empty-panel">
+        <div class="empty-illustration" aria-hidden="true">
+          <span class="empty-orbit one" />
+          <span class="empty-orbit two" />
+          <span class="empty-card small">AI 面试官</span>
+          <span class="empty-card main">面试评估报告</span>
+          <span class="empty-badge">AI</span>
+        </div>
+        <h1>暂无面试记录</h1>
+        <p class="summary">完成第一场模拟面试后，这里会展示面试记录、综合评分和报告入口。</p>
+        <div class="action-row">
+          <el-button :icon="DocumentAdd" type="primary" @click="router.push('/positions')">
+            开始第一场面试
+          </el-button>
+          <el-button :icon="Refresh" plain @click="loadInterviews">刷新</el-button>
+        </div>
+      </section>
     </section>
   </main>
 </template>
