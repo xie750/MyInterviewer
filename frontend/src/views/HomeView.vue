@@ -2,8 +2,10 @@
 import { ArrowRight, Clock, DocumentChecked, SwitchButton, UserFilled } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 
+import { useFeatureFlags } from '@/composables/useFeatureFlags'
 import { useAuthStore } from '@/stores/auth'
 
+const flags = useFeatureFlags()
 const authStore = useAuthStore()
 const router = useRouter()
 
