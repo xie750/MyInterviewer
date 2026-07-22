@@ -894,6 +894,241 @@ textarea {
   line-height: 1.75;
 }
 
+.question-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.question-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #60a5fa;
+}
+
+.phase-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 06%);
+  transition: all 300ms ease;
+}
+
+.phase-indicator.ai_speaking {
+  color: #fbbf24;
+  background: rgb(251 191 36 / 12%);
+}
+
+.phase-indicator.listening {
+  color: #4ade80;
+  background: rgb(74 222 128 / 12%);
+}
+
+.phase-indicator.processing {
+  color: #a78bfa;
+  background: rgb(167 139 250 / 12%);
+}
+
+.phase-indicator.ai_thinking {
+  color: #fbbf24;
+  background: rgb(251 191 36 / 12%);
+}
+
+.phase-indicator.summarizing {
+  color: #f472b6;
+  background: rgb(244 114 182 / 12%);
+}
+
+/* 回答卡片 */
+.answer-card {
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: rgb(52 211 153 / 10%);
+  border: 1px solid rgb(52 211 153 / 25%);
+  margin-top: 10px;
+}
+
+.answer-label {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #34d399;
+  margin-bottom: 6px;
+}
+
+.answer-card p {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+/* 问题卡片淡出 */
+.question-card.fading {
+  opacity: 0.5;
+}
+
+/* 轮次指示器 */
+.round-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.round-indicator::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #60a5fa;
+}
+
+/* 面试官视频状态浮层 */
+.ai-state-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  background: rgb(15 23 42 / 55%);
+  backdrop-filter: blur(4px);
+}
+
+.thinking-dots {
+  display: flex;
+  gap: 8px;
+}
+
+.thinking-dots span {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #fbbf24;
+  animation: dotBounce 1.2s ease-in-out infinite;
+}
+
+.thinking-dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.thinking-dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.speaking-wave {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 40px;
+}
+
+.speaking-wave span {
+  display: inline-block;
+  width: 4px;
+  border-radius: 2px;
+  background: #60a5fa;
+  animation: wave 1s ease-in-out infinite;
+}
+
+.speaking-wave span:nth-child(1) { height: 30%; animation-delay: 0s; }
+.speaking-wave span:nth-child(2) { height: 60%; animation-delay: 0.1s; }
+.speaking-wave span:nth-child(3) { height: 100%; animation-delay: 0.2s; }
+.speaking-wave span:nth-child(4) { height: 60%; animation-delay: 0.3s; }
+.speaking-wave span:nth-child(5) { height: 30%; animation-delay: 0.4s; }
+
+.summarizing-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: #f472b6;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.summarizing-icon .el-icon {
+  font-size: 36px;
+}
+
+/* 状态指示灯 */
+.status-dot.purple {
+  background: #a78bfa;
+}
+
+.control-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.control-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 18px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e5e7eb;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 150ms ease;
+  white-space: nowrap;
+}
+
+.control-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.control-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.control-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.control-btn.mic-active {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #fca5a5;
+  animation: micPulse 2s ease-in-out infinite;
+}
+
+.control-btn .el-icon {
+  font-size: 16px;
+}
+
+.settings-hint {
+  display: inline-block;
+  color: #64748b;
+  font-size: 12px;
+  font-style: normal;
+}
+
 .listening-status {
   display: inline-flex;
   align-items: center;
@@ -901,6 +1136,10 @@ textarea {
   margin-top: 12px;
   color: #cbd5e1;
   font-size: 13px;
+}
+
+.listening-status .status-dot.blue {
+  background: #60a5fa;
 }
 
 .end-interview-btn {
@@ -1482,6 +1721,35 @@ textarea {
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes micPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+  }
+}
+
+@keyframes dotBounce {
+  0%, 80%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  40% {
+    transform: translateY(-10px);
+    opacity: 1;
+  }
+}
+
+@keyframes wave {
+  0%, 100% {
+    transform: scaleY(0.4);
+  }
+  50% {
+    transform: scaleY(1);
   }
 }
 
